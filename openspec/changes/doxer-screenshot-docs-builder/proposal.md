@@ -22,7 +22,7 @@
 > | # | Change | Status | Takes from this change |
 > |---|---|---|---|
 > | 1 | `spike-screenshot-quality` | archived 2026-11-08 | old task group 2; findings in the archive |
-> | 2 | `core-build-pipeline` | next | setup; `doc-build`; `block-language` (YAML steps only, no `js`, no state attributes); simple session (continue by default, first block starts clean); basic capture (viewport/element crop, padding, stable rendering) |
+> | 2 | `core-build-pipeline` | archived 2026-11-08 | setup; `doc-build`; `block-language` (YAML steps only, no `js`, no state attributes); simple session (continue by default, first block starts clean); basic capture (viewport/element crop, padding, stable rendering) |
 > | 3 | `annotations-and-stability` | planned | annotation parts of `screenshot-capture` (highlight, arrow, badge, hide, mask); freeze by replaying responses; blank-capture guard and determinism checks |
 > | 4 | `js-blocks` | planned | `js` escape hatch from `block-language`; the `js` runtime task |
 > | 5 | `session-state-and-auth` | planned | rest of `session-state`: named states, `save=`, interactive login, validity checks, saved states as secrets; front-matter default state |
