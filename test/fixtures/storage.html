@@ -1,0 +1,6 @@
+<!doctype html><meta charset=utf-8><title>Storage</title>
+<p id=v></p>
+<script>
+  document.getElementById('v').textContent = localStorage.getItem('k') ?? 'empty';
+  localStorage.setItem('k', 'set');
+</script>

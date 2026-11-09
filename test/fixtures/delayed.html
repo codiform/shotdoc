@@ -1,0 +1,11 @@
+<!doctype html><meta charset=utf-8><title>Delayed</title>
+<button id=update>Update</button>
+<p id=count>3 items left</p>
+<div id=spinner>Loading</div>
+<script>
+  document.getElementById('update').onclick = () => {
+    setTimeout(() => { document.getElementById('count').textContent = '2 items left'; }, 300);
+    setTimeout(() => { document.getElementById('spinner').remove(); }, 300);
+    setTimeout(() => { const p = document.createElement('p'); p.id = 'late'; p.textContent = 'late arrival'; document.body.append(p); }, 400);
+  };
+</script>

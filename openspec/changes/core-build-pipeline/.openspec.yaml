@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-08
+goal: "Walking skeleton: build Markdown with shotdoc blocks into Markdown plus
+  plain screenshots, using one continuous browser session"
