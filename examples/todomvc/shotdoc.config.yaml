@@ -1,0 +1,3 @@
+baseUrl: https://demo.playwright.dev/todomvc/   # used to resolve relative `goto` URLs
+outDir: output
+deviceScaleFactor: 1
