@@ -1,0 +1,12 @@
+{
+  "name": "doxer-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Throwaway spike for screenshot quality; see README.md",
+  "type": "module",
+  "dependencies": {
+    "pixelmatch": "^8.0.0",
+    "playwright": "^1.65.0",
+    "pngjs": "^7.0.0"
+  }
+}
