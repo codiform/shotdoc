@@ -1,0 +1,37 @@
+<!doctype html><meta charset=utf-8><title>Rows</title>
+<style>
+  body { margin: 0; font: 16px sans-serif }
+  ul { list-style: none; margin: 20px; padding: 0; width: 400px }
+  li { position: relative; height: 40px; line-height: 40px; border-bottom: 1px solid #ccc; padding-left: 40px }
+  li input.toggle { position: absolute; left: 10px; top: 12px }
+  li.done label { text-decoration: line-through; color: #999 }
+  .destroy { display: none; position: absolute; right: 10px; top: 8px; width: 24px; height: 24px; background: rgb(220,0,0); border: 0; padding: 0 }
+  li:hover .destroy { display: block }
+  input.edit { position: absolute; left: 40px; top: 6px; width: 300px; height: 28px }
+</style>
+<ul id=list>
+  <li><input class=toggle type=checkbox aria-label="Toggle Todo"><label>Write the docs</label><button class=destroy aria-label=Delete></button></li>
+  <li><input class=toggle type=checkbox aria-label="Toggle Todo"><label>Take screenshots</label><button class=destroy aria-label=Delete></button></li>
+  <li><input class=toggle type=checkbox aria-label="Toggle Todo"><label>Ship it</label><button class=destroy aria-label=Delete></button></li>
+</ul>
+<p id=status>completed: 0</p>
+<script>
+  const list = document.getElementById('list'), status = document.getElementById('status');
+  const refresh = () => { status.textContent = 'completed: ' + list.querySelectorAll('li.done').length; };
+  list.addEventListener('change', (e) => {
+    if (e.target.classList.contains('toggle')) { e.target.closest('li').classList.toggle('done', e.target.checked); refresh(); }
+  });
+  list.addEventListener('click', (e) => {
+    if (e.target.classList.contains('destroy')) { e.target.closest('li').remove(); refresh(); }
+  });
+  list.addEventListener('dblclick', (e) => {
+    if (e.target.tagName !== 'LABEL') return;
+    const label = e.target, li = label.closest('li');
+    const edit = document.createElement('input');
+    edit.className = 'edit'; edit.value = label.textContent; li.classList.add('editing'); li.append(edit); edit.focus();
+    edit.addEventListener('keydown', (k) => {
+      if (k.key === 'Enter') { label.textContent = edit.value.trim(); edit.remove(); li.classList.remove('editing'); }
+      if (k.key === 'Escape') { edit.remove(); li.classList.remove('editing'); }
+    });
+  });
+</script>

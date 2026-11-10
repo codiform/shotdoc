@@ -45,10 +45,10 @@ test('success exits zero and writes output', async () => {
 });
 
 test('validation failure: non-zero, every error listed, nothing written', async () => {
-  write('g.md', '```shotdoc\n- hover: a\n```\n\n```shotdoc fast\n- goto: /\n```\n');
+  write('g.md', '```shotdoc\n- swipe: a\n```\n\n```shotdoc fast\n- goto: /\n```\n');
   const r = await run(['build', 'g.md']);
   expect(r.code).toBe(1);
-  expect(r.err).toMatch(/error: g\.md:1 \(step 1\): unsupported step `hover`/);
+  expect(r.err).toMatch(/error: g\.md:1 \(step 1\): unsupported step `swipe`/);
   expect(r.err).toMatch(/error: g\.md:5: unknown attribute `fast`/);
   expect(existsSync(join(cwd, 'build'))).toBe(false);
 });

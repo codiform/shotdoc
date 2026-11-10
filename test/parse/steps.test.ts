@@ -28,11 +28,11 @@ describe('structure', () => {
   });
 
   test('unsupported step names its number', () => {
-    expect(msgs('- goto: /\n- hover: a\n')[0]).toMatch(/^a\.md:10 \(step 2\): unsupported step `hover`/);
+    expect(msgs('- goto: /\n- swipe: a\n')[0]).toMatch(/^a\.md:10 \(step 2\): unsupported step `swipe`/);
   });
 
   test('reports every bad step', () => {
-    expect(msgs('- hover: a\n- jump: b\n')).toHaveLength(2);
+    expect(msgs('- swipe: a\n- jump: b\n')).toHaveLength(2);
   });
 });
 
@@ -56,6 +56,14 @@ describe('targets', () => {
       expect(click(t).errors).toHaveLength(1);
     },
   );
+});
+
+describe('target error wording', () => {
+  test('a target that is neither a string nor a mapping says "selector string"', () => {
+    const m = msgs('- click: 42\n');
+    expect(m[0]).toMatch(/must be a selector string or a mapping with role, text, or label/);
+    expect(m[0]).not.toMatch(/CSS/);
+  });
 });
 
 describe('goto', () => {
@@ -123,4 +131,70 @@ describe('screenshot', () => {
     expect(msgs('- screenshot: {name: a, target: x, include: x}\n')[0]).toMatch(/list of targets/);
     expect(msgs('- screenshot: home\n')).toHaveLength(1);
   });
+});
+
+describe('press', () => {
+  test.each([
+    ['Enter', { key: 'Enter' }],
+    ['Control+A', { key: 'Control+A' }],
+    ['Shift+Tab', { key: 'Shift+Tab' }],
+    ['"+"', { key: '+' }],
+    ['Control++', { key: 'Control++' }],
+    ['a', { key: 'a' }],
+    ['{key: Escape}', { key: 'Escape' }],
+    ['{key: Enter, target: "#new"}', { key: 'Enter', target: { kind: 'css', selector: '#new' } }],
+    ['{key: Tab, target: {role: textbox, name: Name}}', { key: 'Tab', target: { kind: 'role', role: 'textbox', name: 'Name' } }],
+  ])('valid %s', (v, expected) => {
+    const { steps, errors } = run(`- press: ${v}\n`);
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({ kind: 'press', ...expected });
+  });
+
+  test('a bare key has no target', () => {
+    expect((run('- press: Enter\n').steps[0] as { target?: unknown }).target).toBeUndefined();
+  });
+
+  test.each([
+    ['{}', /requires a `key`/],
+    ['{target: "#a"}', /requires a `key`/],
+    ['{key: Enter, extra: 1}', /unknown key `extra`/],
+    ['{key: Enter, target: {}}', /exactly one of/],
+    ['1', /not text: put it in quotes, for example press: "1"/],
+    ['true', /not text/],
+    ['""', /needs a key/],
+    ['', /needs a key/],
+    ['"two words"', /not valid/],
+    ['"Control+"', /not valid/],
+    ['[Enter]', /needs a key/],
+  ])('invalid %s', (v, message) => {
+    const m = msgs(`- goto: /\n- press: ${v}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/^a\.md:10 \(step 2\): /);
+    expect(m[0]).toMatch(message);
+  });
+});
+
+describe.each(['dblclick', 'hover'] as const)('%s', (kind) => {
+  test.each([
+    ['"#row"', { kind: 'css', selector: '#row' }],
+    ['{role: listitem, name: Ship it}', { kind: 'role', role: 'listitem', name: 'Ship it' }],
+    ['{text: Write the docs}', { kind: 'text', text: 'Write the docs' }],
+    ['{label: Email}', { kind: 'label', label: 'Email' }],
+  ])('valid target %s', (t, expected) => {
+    const { steps, errors } = run(`- ${kind}: ${t}\n`);
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({ kind, target: expected });
+  });
+
+  test.each(['{}', '{name: x}', '{role: a, text: b}', '42', '""'])('invalid target %s names the step', (t) => {
+    const m = msgs(`- goto: /\n- ${kind}: ${t}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/^a\.md:10 \(step 2\): /);
+  });
+});
+
+test('hover, dblclick and press are accepted together in one block', () => {
+  const { steps, errors } = run('- goto: /\n- hover: "#a"\n- dblclick: "#b"\n- press: Enter\n');
+  expect(errors).toEqual([]);
+  expect(steps.map((s) => s.kind)).toEqual(['goto', 'hover', 'dblclick', 'press']);
 });

@@ -1,0 +1,11 @@
+<!doctype html><meta charset=utf-8><title>Keys</title>
+<input id=field aria-label=Field> <input id=other aria-label=Other>
+<pre id=log></pre>
+<script>
+  // One line per keydown: key|modifiers (C=ctrl S=shift A=alt M=meta)|id of the element that received it.
+  const log = document.getElementById('log');
+  addEventListener('keydown', (e) => {
+    const mods = (e.ctrlKey ? 'C' : '') + (e.shiftKey ? 'S' : '') + (e.altKey ? 'A' : '') + (e.metaKey ? 'M' : '');
+    log.textContent += `${e.key}|${mods}|${e.target.id || e.target.tagName}\n`;
+  });
+</script>

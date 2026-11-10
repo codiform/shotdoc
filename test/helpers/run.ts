@@ -4,6 +4,9 @@ import { join } from 'node:path';
 import type { Config } from '../../src/config.js';
 import { parseDocument } from '../../src/parse/document.js';
 import { runDocument } from '../../src/run/run.js';
+import { Session } from '../../src/run/session.js';
+import { runBlock } from '../../src/run/steps.js';
+import type { Page } from 'playwright';
 import type { Shot } from '../../src/run/steps.js';
 
 export function testConfig(baseUrl: string, over: Partial<Config> = {}): Config {
@@ -34,5 +37,28 @@ export async function runMd(
   } finally {
     // Images are read by the caller through `read` only when needed; clean on next tick.
     setTimeout(() => rmSync(stageDir, { recursive: true, force: true }), 5000).unref();
+  }
+}
+
+/**
+ * Runs a Markdown document's blocks in one session, then lets the test look at the live page
+ * before the browser closes. Use this to assert on page state; use `runMd`/`shoot` for images.
+ */
+export async function runThen<T>(
+  source: string,
+  baseUrl: string,
+  inspect: (page: Page) => Promise<T>,
+  over: Partial<Config> = {},
+): Promise<T> {
+  const config = testConfig(baseUrl, over);
+  const blocks = parseDocument(source, 'doc.md', { baseUrl: config.baseUrl });
+  const stageDir = mkdtempSync(join(tmpdir(), 'shotdoc-then-'));
+  const session = await Session.start(config);
+  try {
+    for (const block of blocks) await runBlock(block, { session, file: 'doc.md', stageDir });
+    return await inspect(session.page);
+  } finally {
+    await session.close();
+    rmSync(stageDir, { recursive: true, force: true });
   }
 }

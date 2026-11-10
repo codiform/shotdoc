@@ -38,8 +38,12 @@ function stepTarget(step: Step): string | undefined {
     case 'goto':
       return resolveUrl(step.url, undefined);
     case 'click':
+    case 'dblclick':
+    case 'hover':
     case 'fill':
       return describeTarget(step.target);
+    case 'press':
+      return step.target ? describeTarget(step.target) : `key ${step.key}`;
     case 'wait':
       return describeWait(step.condition);
     case 'screenshot':
@@ -77,11 +81,38 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
       }
       return;
     }
+    case 'dblclick':
+    case 'hover': {
+      const what = describeTarget(step.target);
+      try {
+        const locator = locate(session.page, step.target);
+        if (step.kind === 'dblclick') await locator.dblclick();
+        else await locator.hover();
+      } catch (e) {
+        throw explain(e, what);
+      }
+      return;
+    }
     case 'fill': {
       const what = describeTarget(step.target);
       try {
         await locate(session.page, step.target).fill(step.value);
       } catch (e) {
+        throw explain(e, what);
+      }
+      return;
+    }
+    case 'press': {
+      const what = step.target ? describeTarget(step.target) : `key ${step.key}`;
+      try {
+        if (step.target) await locate(session.page, step.target).press(step.key);
+        else await session.page.keyboard.press(step.key);
+      } catch (e) {
+        if (e instanceof Error && /Unknown key/.test(e.message)) {
+          throw new ShotdocError(
+            `unknown key ${JSON.stringify(step.key)}: use a key name such as Enter, Escape, or Tab, or a single character`,
+          );
+        }
         throw explain(e, what);
       }
       return;

@@ -8,7 +8,7 @@ export interface StepContext {
   baseUrl?: string;
 }
 
-const STEP_NAMES = ['goto', 'click', 'fill', 'wait', 'screenshot'];
+const STEP_NAMES = ['goto', 'click', 'dblclick', 'hover', 'fill', 'press', 'wait', 'screenshot'];
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
 const isMap = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -24,7 +24,7 @@ export function parseTarget(v: unknown, what = 'target'): Target {
     if (!v.trim()) bad(`${what} must not be empty`);
     return { kind: 'css', selector: v };
   }
-  if (!isMap(v)) return bad(`${what} must be a CSS selector string or a mapping with role, text, or label`);
+  if (!isMap(v)) return bad(`${what} must be a selector string or a mapping with role, text, or label`);
   const keys = Object.keys(v);
   const primary = keys.filter((k) => k === 'role' || k === 'text' || k === 'label');
   if (primary.length !== 1) {
@@ -45,6 +45,30 @@ export function parseTarget(v: unknown, what = 'target'): Target {
   }
   if (key === 'text') return { kind: 'text', text: str(v.text, 'text') };
   return { kind: 'label', label: str(v.label, 'label') };
+}
+
+/** Modifiers joined by `+`, then a final key that is a single character or a name. */
+const KEY_RE = /^(?:[A-Za-z]+\+)*(?:\S|[A-Za-z][A-Za-z0-9]*)$/;
+
+function parseKey(v: unknown): string {
+  if (typeof v === 'number' || typeof v === 'boolean') {
+    return bad(`press key ${String(v)} is not text: put it in quotes, for example press: "${String(v)}"`);
+  }
+  if (typeof v !== 'string' || !v) return bad('press needs a key, such as Enter or Control+A');
+  if (!KEY_RE.test(v)) {
+    return bad(
+      `press key ${JSON.stringify(v)} is not valid: write a key name or a single character, optionally with modifiers joined by +, such as Enter or Control+A`,
+    );
+  }
+  return v;
+}
+
+function parsePress(v: unknown): { key: string; target?: Target } {
+  if (!isMap(v)) return { key: parseKey(v) };
+  for (const k of Object.keys(v)) if (k !== 'key' && k !== 'target') bad(`press has unknown key \`${k}\` (allowed: key, target)`);
+  if (v.key === undefined) bad('press requires a `key`');
+  const key = parseKey(v.key);
+  return v.target === undefined ? { key } : { key, target: parseTarget(v.target) };
 }
 
 function parseWait(v: unknown): WaitCondition {
@@ -113,7 +137,9 @@ function parseStep(name: string, v: unknown, n: number, ctx: StepContext): Step 
       return { n, kind: 'goto', url: v };
     }
     case 'click':
-      return { n, kind: 'click', target: parseTarget(v) };
+    case 'dblclick':
+    case 'hover':
+      return { n, kind: name, target: parseTarget(v) };
     case 'fill': {
       if (!isMap(v)) return bad('fill needs a mapping with `target` and `value`');
       for (const k of Object.keys(v)) if (k !== 'target' && k !== 'value') bad(`fill has unknown key \`${k}\``);
@@ -122,6 +148,8 @@ function parseStep(name: string, v: unknown, n: number, ctx: StepContext): Step 
       if (typeof v.value !== 'string' && typeof v.value !== 'number') bad('fill `value` must be text');
       return { n, kind: 'fill', target: parseTarget(v.target), value: String(v.value) };
     }
+    case 'press':
+      return { n, kind: 'press', ...parsePress(v) };
     case 'wait':
       return { n, kind: 'wait', condition: parseWait(v) };
     default:

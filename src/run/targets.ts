@@ -27,7 +27,8 @@ export function explain(e: unknown, what: string): ShotdocError {
   if (e instanceof pwErrors.TimeoutError || /Timeout \d+ms exceeded/.test(msg)) {
     return new ShotdocError(`timed out after ${TIMEOUT_MS / 1000}s waiting for ${what}`);
   }
-  return new ShotdocError(msg.split('\n')[0] ?? msg);
+  // Playwright prefixes its messages with the call name, such as `locator.click: `; drop it.
+  return new ShotdocError((msg.split('\n')[0] ?? msg).replace(/^locator\.\w+: /, ''));
 }
 
 export { describeTarget };

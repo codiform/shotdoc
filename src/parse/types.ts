@@ -19,7 +19,10 @@ interface Base {
 export type Step =
   | (Base & { kind: 'goto'; url: string })
   | (Base & { kind: 'click'; target: Target })
+  | (Base & { kind: 'dblclick'; target: Target })
+  | (Base & { kind: 'hover'; target: Target })
   | (Base & { kind: 'fill'; target: Target; value: string })
+  | (Base & { kind: 'press'; key: string; target?: Target })
   | (Base & { kind: 'wait'; condition: WaitCondition })
   | (Base & {
       kind: 'screenshot';

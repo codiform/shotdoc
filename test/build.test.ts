@@ -97,7 +97,7 @@ test('missing source names the path', async () => {
 
 test('validation errors in later blocks stop before any step runs', async () => {
   mkdirSync(join(cwd, 'sub'));
-  write('sub/g.md', '```shotdoc\n- goto: /index.html\n```\n\n```shotdoc\n- hover: x\n```\n');
+  write('sub/g.md', '```shotdoc\n- goto: /index.html\n```\n\n```shotdoc\n- swipe: x\n```\n');
   await expect(build('sub/g.md', cwd)).rejects.toThrow(/sub\/g\.md:5/);
   expect(existsSync(join(cwd, 'build'))).toBe(false);
 });

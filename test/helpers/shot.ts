@@ -13,11 +13,11 @@ export type Image = PNG;
 /** Runs steps (one block) and returns the decoded PNGs by screenshot name. */
 export async function shoot(
   baseUrl: string,
-  steps: string,
+  steps: string | string[],
   over: Partial<Config> = {},
 ): Promise<Record<string, Image>> {
   const config = testConfig(baseUrl, over);
-  const blocks = parseDocument(md(steps), 'doc.md', { baseUrl });
+  const blocks = parseDocument(md(...[steps].flat()), 'doc.md', { baseUrl });
   const stageDir = mkdtempSync(join(tmpdir(), 'shotdoc-shot-'));
   try {
     const result = await runDocument(blocks, { config, file: 'doc.md', stageDir });
@@ -41,4 +41,13 @@ export function everyPixelIs(img: Image, rgb: [number, number, number]): boolean
     if (img.data[i] !== rgb[0] || img.data[i + 1] !== rgb[1] || img.data[i + 2] !== rgb[2]) return false;
   }
   return true;
+}
+
+/** Number of pixels that are exactly this colour. */
+export function countPixels(img: Image, rgb: [number, number, number]): number {
+  let n = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i] === rgb[0] && img.data[i + 1] === rgb[1] && img.data[i + 2] === rgb[2]) n++;
+  }
+  return n;
 }

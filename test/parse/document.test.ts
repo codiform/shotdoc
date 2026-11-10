@@ -19,9 +19,9 @@ function errorsOf(src: string): string[] {
 }
 
 test('reports problems from different blocks together', () => {
-  const m = errorsOf('```shotdoc\n- hover: x\n```\n\n```shotdoc state=fresh\n- goto: /\n```\n');
+  const m = errorsOf('```shotdoc\n- swipe: x\n```\n\n```shotdoc state=fresh\n- goto: /\n```\n');
   expect(m).toHaveLength(2);
-  expect(m[0]).toMatch(/a\.md:1 \(step 1\).*hover/);
+  expect(m[0]).toMatch(/a\.md:1 \(step 1\).*swipe/);
   expect(m[1]).toMatch(/a\.md:5.*state=fresh/);
 });
 
@@ -34,7 +34,7 @@ test('duplicate screenshot names across blocks name both lines', () => {
 test('validation does not touch a browser', async () => {
   const pw = await import('playwright');
   const spy = vi.spyOn(pw.chromium, 'launch');
-  errorsOf('```shotdoc\n- hover: x\n```\n');
+  errorsOf('```shotdoc\n- swipe: x\n```\n');
   expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
 });
