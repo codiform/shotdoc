@@ -1,10 +1,9 @@
-import { spawn } from 'node:child_process';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, beforeEach, afterEach, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from './helpers/server.js';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
+import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 const root = join(import.meta.dirname, '..');
 const cli = join(root, 'dist', 'cli.js');
@@ -25,7 +24,11 @@ afterEach(() => rmSync(cwd, { recursive: true, force: true }));
 function run(args: string[], env: Record<string, string> = {}): Promise<{ code: number; out: string; err: string }> {
   return new Promise((resolve) => {
     // stdin is closed: a build must never wait for input.
-    const p = spawn('node', [cli, ...args], { cwd, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const p = spawn('node', [cli, ...args], {
+      cwd,
+      env: { ...process.env, ...env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let out = '';
     let err = '';
     p.stdout.on('data', (d) => (out += d));

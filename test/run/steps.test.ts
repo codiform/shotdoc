@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
 import { md, runMd } from '../helpers/run.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 
 let server: FixtureServer;
 beforeAll(async () => {
@@ -21,7 +21,9 @@ describe('session', () => {
   test('uses configured viewport, scale, en-US and UTC', async () => {
     const { testConfig } = await import('../helpers/run.js');
     const { Session } = await import('../../src/run/session.js');
-    const s = await Session.start(testConfig(server.url, { viewport: { width: 900, height: 600 }, deviceScaleFactor: 1 }));
+    const s = await Session.start(
+      testConfig(server.url, { viewport: { width: 900, height: 600 }, deviceScaleFactor: 1 }),
+    );
     try {
       const page = await s.openPage();
       await page.goto(`${server.url}/env.html`);
@@ -78,7 +80,13 @@ describe('click and fill', () => {
     const config = testConfig(server.url);
     const s = await Session.start(config);
     try {
-      const [b] = parseDocument(md('- goto: /form.html\n- fill: {target: {label: Email}, value: ada}\n- fill: {target: "#name", value: lovelace}'), 'doc.md', { baseUrl: server.url });
+      const [b] = parseDocument(
+        md(
+          '- goto: /form.html\n- fill: {target: {label: Email}, value: ada}\n- fill: {target: "#name", value: lovelace}',
+        ),
+        'doc.md',
+        { baseUrl: server.url },
+      );
       await runBlock(b!, { session: s, file: 'doc.md', stageDir: '/tmp' });
       expect(await s.page.inputValue('#email')).toBe('ada');
       expect(await s.page.inputValue('#name')).toBe('lovelace');
@@ -114,13 +122,18 @@ describe('wait', () => {
   });
   test('a condition that never holds names it', async () => {
     const m = await fails(md('- goto: /delayed.html\n- wait: {text: never appears}'));
-    expect(m).toMatch(/\(step 2, the text "never appears" to appear\): timed out after 10s waiting for the text "never appears" to appear/);
+    expect(m).toMatch(
+      /\(step 2, the text "never appears" to appear\): timed out after 10s waiting for the text "never appears" to appear/,
+    );
   });
 });
 
 describe('continuous session', () => {
   test('block two acts on the page block one opened', async () => {
-    await runMd(md('- goto: /form.html\n- click: {text: Next page}', '- click: "#here"\n- wait: {visible: "#here"}'), server.url);
+    await runMd(
+      md('- goto: /form.html\n- click: {text: Next page}', '- click: "#here"\n- wait: {visible: "#here"}'),
+      server.url,
+    );
   });
 
   test('each build starts with no stored data', async () => {

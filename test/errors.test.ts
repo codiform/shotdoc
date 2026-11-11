@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { ShotdocError, formatError } from '../src/errors.js';
+import { formatError, ShotdocError } from '../src/errors.js';
 
 test('full location', () => {
   expect(formatError('element not found', { file: 'guide.md', blockLine: 12, step: 3, target: 'button "Save"' })).toBe(

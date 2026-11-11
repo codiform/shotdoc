@@ -1,11 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Locator, Page } from 'playwright';
-import { describeTarget, type Step } from '../parse/types.js';
-import { region, scrollToFit, type Rect } from './region.js';
-import { TIMEOUT_MS, type Session } from './session.js';
-import { explain, locate } from './targets.js';
 import { ShotdocError } from '../errors.js';
+import { describeTarget, type Step } from '../parse/types.js';
+import { type Rect, region, scrollToFit } from './region.js';
+import { type Session, TIMEOUT_MS } from './session.js';
+import { explain, locate } from './targets.js';
 
 export const DEFAULT_PADDING = 16;
 

@@ -20,7 +20,12 @@ test('corner element with padding 20 starts at the page edge', () => {
 });
 
 test('clamps at the far edges too', () => {
-  expect(clamp({ x: 1200, y: 760, width: 200, height: 100 }, 1280, 800)).toEqual({ x: 1200, y: 760, width: 80, height: 40 });
+  expect(clamp({ x: 1200, y: 760, width: 200, height: 100 }, 1280, 800)).toEqual({
+    x: 1200,
+    y: 760,
+    width: 80,
+    height: 40,
+  });
 });
 
 test('fractional width 82.39 is rounded outward to whole pixels', () => {
@@ -34,7 +39,12 @@ test('fractional width 82.39 is rounded outward to whole pixels', () => {
 });
 
 test('union of several regions', () => {
-  expect(union([{ x: 20, y: 20, width: 400, height: 40 }, { x: 20, y: 80, width: 200, height: 150 }])).toEqual({
+  expect(
+    union([
+      { x: 20, y: 20, width: 400, height: 40 },
+      { x: 20, y: 80, width: 200, height: 150 },
+    ]),
+  ).toEqual({
     x: 20,
     y: 20,
     width: 400,

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
 import { md, runMd, runThen } from '../helpers/run.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 import { countPixels, shoot } from '../helpers/shot.js';
 
 let server: FixtureServer;
@@ -23,8 +23,10 @@ const fails = async (steps: string): Promise<string> => {
 
 describe('dblclick', () => {
   test('opens edit mode', async () => {
-    const editing = await runThen(md('- goto: /rows.html\n- dblclick: {text: Write the docs}'), server.url, async (page) =>
-      page.locator('input.edit').isVisible(),
+    const editing = await runThen(
+      md('- goto: /rows.html\n- dblclick: {text: Write the docs}'),
+      server.url,
+      async (page) => page.locator('input.edit').isVisible(),
     );
     expect(editing).toBe(true);
   });
@@ -56,7 +58,7 @@ describe.each(['dblclick', 'hover'])('%s failures', (step) => {
     const t0 = Date.now();
     const m = await fails(`- goto: /rows.html\n- ${step}: {text: Nothing like this}`);
     expect(Date.now() - t0).toBeGreaterThan(9000);
-    expect(m).toMatch(new RegExp(`doc\\.md:1 \\(step 2, text="Nothing like this"\\): timed out after 10s`));
+    expect(m).toMatch(/doc\.md:1 \(step 2, text="Nothing like this"\): timed out after 10s/);
   });
 
   test('a target matching three elements gives the count and the target', async () => {

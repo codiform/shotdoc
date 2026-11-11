@@ -23,13 +23,18 @@ function isReserved(attr: string): boolean {
 export function findBlocks(source: string, file: string): { blocks: RawBlock[]; errors: ShotdocError[] } {
   const blocks: RawBlock[] = [];
   const errors: ShotdocError[] = [];
+
   for (const token of md.parse(source, {})) {
     if (token.type !== 'fence' || !token.map) continue;
+
     const [first, ...attrs] = token.info.trim().split(/\s+/);
     if (first !== 'shotdoc') continue;
+
     const [start, end] = token.map;
     const line = start + 1;
+
     let ok = true;
+
     if (token.level > 0) {
       errors.push(
         new ShotdocError('shotdoc blocks must be at the top level of the document, not inside a list or blockquote', {
@@ -39,6 +44,7 @@ export function findBlocks(source: string, file: string): { blocks: RawBlock[]; 
       );
       ok = false;
     }
+
     for (const attr of attrs) {
       ok = false;
       errors.push(
@@ -48,7 +54,9 @@ export function findBlocks(source: string, file: string): { blocks: RawBlock[]; 
         ),
       );
     }
+
     if (ok) blocks.push({ line, startLine: start, endLine: end, body: token.content });
   }
+
   return { blocks, errors };
 }

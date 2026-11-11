@@ -11,11 +11,14 @@ export function parseDocument(source: string, file: string, opts: { baseUrl?: st
   const { blocks: raw, errors } = findBlocks(source, file);
   const blocks: Block[] = [];
   const seen = new Map<string, number>();
+
   for (const r of raw) {
     const { steps, errors: stepErrors } = parseSteps(r.body, { file, blockLine: r.line, baseUrl: opts.baseUrl });
     errors.push(...stepErrors);
+
     for (const s of steps) {
       if (s.kind !== 'screenshot') continue;
+
       const firstLine = seen.get(s.name);
       if (firstLine !== undefined) {
         errors.push(
@@ -31,7 +34,10 @@ export function parseDocument(source: string, file: string, opts: { baseUrl?: st
     blocks.push({ line: r.line, startLine: r.startLine, endLine: r.endLine, steps });
   }
   if (errors.length) {
-    errors.sort((a, b) => (a.location.blockLine ?? 0) - (b.location.blockLine ?? 0) || (a.location.step ?? 0) - (b.location.step ?? 0));
+    errors.sort(
+      (a, b) =>
+        (a.location.blockLine ?? 0) - (b.location.blockLine ?? 0) || (a.location.step ?? 0) - (b.location.step ?? 0),
+    );
     throw new ShotdocErrors(errors);
   }
   return blocks;

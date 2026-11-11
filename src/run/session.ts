@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { type Browser, type BrowserContext, chromium, type Page } from 'playwright';
 import type { Config } from '../config.js';
 import { ShotdocError } from '../errors.js';
 
@@ -26,7 +26,7 @@ export class Session {
       const msg = (e as Error).message;
       if (/Executable doesn't exist/i.test(msg)) {
         throw new ShotdocError(
-          "the Chromium browser used by shotdoc is not installed. Install it with: npx playwright install chromium",
+          'the Chromium browser used by shotdoc is not installed. Install it with: npx playwright install chromium',
         );
       }
       throw new ShotdocError(`could not launch the browser: ${msg.split('\n')[0]}`);

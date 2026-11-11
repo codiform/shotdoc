@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
+import type { StepContext } from '../../src/parse/steps.js';
 import { parseSteps } from '../../src/parse/steps.js';
 
-import type { StepContext } from '../../src/parse/steps.js';
 const ctx: StepContext = { file: 'a.md', blockLine: 10, baseUrl: 'https://example.test' };
 const run = (body: string, c = ctx) => parseSteps(body, c);
 const msgs = (body: string, c = ctx) => run(body, c).errors.map((e) => e.message);
@@ -143,7 +143,10 @@ describe('press', () => {
     ['a', { key: 'a' }],
     ['{key: Escape}', { key: 'Escape' }],
     ['{key: Enter, target: "#new"}', { key: 'Enter', target: { kind: 'css', selector: '#new' } }],
-    ['{key: Tab, target: {role: textbox, name: Name}}', { key: 'Tab', target: { kind: 'role', role: 'textbox', name: 'Name' } }],
+    [
+      '{key: Tab, target: {role: textbox, name: Name}}',
+      { key: 'Tab', target: { kind: 'role', role: 'textbox', name: 'Name' } },
+    ],
   ])('valid %s', (v, expected) => {
     const { steps, errors } = run(`- press: ${v}\n`);
     expect(errors).toEqual([]);

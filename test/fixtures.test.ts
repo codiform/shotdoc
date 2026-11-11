@@ -1,6 +1,6 @@
-import { chromium, type Browser } from 'playwright';
+import { type Browser, chromium } from 'playwright';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from './helpers/server.js';
+import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 let server: FixtureServer;
 let browser: Browser;

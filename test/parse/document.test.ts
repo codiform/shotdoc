@@ -1,11 +1,15 @@
 import { expect, test, vi } from 'vitest';
-import { ShotdocErrors } from '../../src/errors.js';
+import type { ShotdocErrors } from '../../src/errors.js';
 import { parseDocument } from '../../src/parse/document.js';
 
 const base = { baseUrl: 'https://example.test' };
 
 test('parses all blocks', () => {
-  const blocks = parseDocument('```shotdoc\n- goto: /\n```\n\ntext\n\n```shotdoc\n- screenshot: {name: a}\n```\n', 'a.md', base);
+  const blocks = parseDocument(
+    '```shotdoc\n- goto: /\n```\n\ntext\n\n```shotdoc\n- screenshot: {name: a}\n```\n',
+    'a.md',
+    base,
+  );
   expect(blocks.map((b) => b.line)).toEqual([1, 7]);
 });
 

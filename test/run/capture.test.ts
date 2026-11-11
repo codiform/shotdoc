@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { PNG } from 'pngjs';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
-import { everyPixelIs, pixel, shoot } from '../helpers/shot.js';
-import { testConfig } from '../helpers/run.js';
-import { Session } from '../../src/run/session.js';
-import { takeScreenshot } from '../../src/run/capture.js';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import type { Step } from '../../src/parse/types.js';
+import { takeScreenshot } from '../../src/run/capture.js';
+import { Session } from '../../src/run/session.js';
+import { testConfig } from '../helpers/run.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
+import { everyPixelIs, pixel, shoot } from '../helpers/shot.js';
 
 const cssShot = (name: string, selector: string, padding: number): Extract<Step, { kind: 'screenshot' }> => ({
   n: 1,
@@ -112,7 +112,10 @@ describe('element captures', () => {
   });
 
   test('header plus open menu are both in the image', async () => {
-    const { m } = await shoot(server.url, go('menu.html', '{name: m, target: "#header", include: ["#menu"], padding: 0}'));
+    const { m } = await shoot(
+      server.url,
+      go('menu.html', '{name: m, target: "#header", include: ["#menu"], padding: 0}'),
+    );
     expect([m!.width, m!.height]).toEqual([800, 420]);
     expect(pixel(m!, 10, 10)).toEqual([30, 30, 30]); // header
     expect(pixel(m!, 10, 2 * (100 - 20))).toEqual([250, 200, 0]); // inside the menu

@@ -20,7 +20,9 @@ export async function main(argv: string[]): Promise<number> {
   }
   try {
     const result = await build(file);
-    console.log(`Built ${relative(process.cwd(), result.builtPath)} (${result.images.length} image${result.images.length === 1 ? '' : 's'})`);
+    console.log(
+      `Built ${relative(process.cwd(), result.builtPath)} (${result.images.length} image${result.images.length === 1 ? '' : 's'})`,
+    );
     return 0;
   } catch (e) {
     if (e instanceof ShotdocErrors) {
@@ -28,7 +30,7 @@ export async function main(argv: string[]): Promise<number> {
     } else if (e instanceof ShotdocError) {
       console.error(`error: ${e.message}`);
     } else {
-      console.error(`error: unexpected failure: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
+      console.error(`error: unexpected failure: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
     }
     return 1;
   }

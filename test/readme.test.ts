@@ -11,7 +11,9 @@ test('every shotdoc example in the README is valid', () => {
   const blocks = [...readme.matchAll(/^```shotdoc\n([\s\S]*?)^```$/gm)].map((m) => m[1]!);
   expect(blocks.length).toBeGreaterThanOrEqual(4);
   for (const body of blocks) {
-    expect(() => parseDocument('```shotdoc\n' + body + '```\n', 'README.md', { baseUrl: 'http://example.test' })).not.toThrow();
+    expect(() =>
+      parseDocument('```shotdoc\n' + body + '```\n', 'README.md', { baseUrl: 'http://example.test' }),
+    ).not.toThrow();
   }
 });
 

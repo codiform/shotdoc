@@ -1,7 +1,7 @@
-import { createServer, type Server } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { extname, join, normalize } from 'node:path';
 
 const root = join(import.meta.dirname, '..', 'fixtures');
 const types: Record<string, string> = {

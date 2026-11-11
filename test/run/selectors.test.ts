@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
 import { md, runMd, runThen } from '../helpers/run.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 
 let server: FixtureServer;
 beforeAll(async () => {
@@ -23,7 +23,9 @@ const fails = async (steps: string): Promise<string> => {
 
 describe('Playwright selector syntax in selector strings', () => {
   test(':has-text() with >> role= picks the checkbox in one row', async () => {
-    expect(await completedAfter(`- click: "li:has-text('Take screenshots') >> role=checkbox"`)).toEqual(['Take screenshots']);
+    expect(await completedAfter(`- click: "li:has-text('Take screenshots') >> role=checkbox"`)).toEqual([
+      'Take screenshots',
+    ]);
   });
 
   test(':nth-child() picks one row', async () => {
@@ -49,11 +51,16 @@ describe('Playwright selector syntax in selector strings', () => {
 });
 
 describe('a selector with a syntax error', () => {
-  test.each(['li:has-text((', '[[bad'])('%s fails the step in one readable line naming the target', async (selector) => {
-    const m = await fails(`- click: ${JSON.stringify(selector)}`);
-    expect(m).not.toContain('\n');
-    expect(m).toMatch(new RegExp(`^doc\\.md:1 \\(step 2, css=${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\): `));
-    expect(m).toMatch(/Unexpected token/);
-    expect(m).not.toMatch(/locator\.click/);
-  });
+  test.each(['li:has-text((', '[[bad'])(
+    '%s fails the step in one readable line naming the target',
+    async (selector) => {
+      const m = await fails(`- click: ${JSON.stringify(selector)}`);
+      expect(m).not.toContain('\n');
+      expect(m).toMatch(
+        new RegExp(`^doc\\.md:1 \\(step 2, css=${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\): `),
+      );
+      expect(m).toMatch(/Unexpected token/);
+      expect(m).not.toMatch(/locator\.click/);
+    },
+  );
 });

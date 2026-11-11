@@ -1,10 +1,10 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
 import { build } from '../src/build.js';
-import { startFixtureServer, type FixtureServer } from './helpers/server.js';
+import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 let server: FixtureServer;
 let cwd: string;
@@ -22,7 +22,9 @@ const GOOD = '# Guide\n\n```shotdoc\n- goto: /index.html\n- screenshot: {name: h
 const write = (name: string, text: string) => writeFileSync(join(cwd, name), text);
 const tree = (dir: string): string[] =>
   existsSync(dir)
-    ? readdirSync(dir, { recursive: true, encoding: 'utf8' }).filter((p) => !p.includes('/.') ).sort()
+    ? readdirSync(dir, { recursive: true, encoding: 'utf8' })
+        .filter((p) => !p.includes('/.'))
+        .sort()
     : [];
 
 test('writes the built file and images at the documented paths', async () => {

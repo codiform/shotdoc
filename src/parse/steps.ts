@@ -1,5 +1,5 @@
 import { parse } from 'yaml';
-import { ShotdocError, type ErrorLocation } from '../errors.js';
+import { type ErrorLocation, ShotdocError } from '../errors.js';
 import { describeTarget, type Step, type Target, type WaitCondition } from './types.js';
 
 export interface StepContext {
@@ -10,8 +10,7 @@ export interface StepContext {
 
 const STEP_NAMES = ['goto', 'click', 'dblclick', 'hover', 'fill', 'press', 'wait', 'screenshot'];
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
-const isMap = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isMap = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 class StepError extends Error {}
 const bad = (msg: string): never => {
@@ -24,26 +23,34 @@ export function parseTarget(v: unknown, what = 'target'): Target {
     if (!v.trim()) bad(`${what} must not be empty`);
     return { kind: 'css', selector: v };
   }
+
   if (!isMap(v)) return bad(`${what} must be a selector string or a mapping with role, text, or label`);
+
   const keys = Object.keys(v);
   const primary = keys.filter((k) => k === 'role' || k === 'text' || k === 'label');
+
   if (primary.length !== 1) {
     return bad(`${what} mapping needs exactly one of \`role\`, \`text\`, or \`label\``);
   }
+
   const key = primary[0];
   for (const k of keys) {
     if (k !== key && !(key === 'role' && k === 'name')) bad(`${what} has unexpected key \`${k}\``);
   }
+
   const str = (x: unknown, name: string): string => {
     if (typeof x !== 'string' || !x) bad(`${what} \`${name}\` must be a non-empty string`);
     return x as string;
   };
+
   if (key === 'role') {
     return v.name === undefined
       ? { kind: 'role', role: str(v.role, 'role') }
       : { kind: 'role', role: str(v.role, 'role'), name: str(v.name, 'name') };
   }
+
   if (key === 'text') return { kind: 'text', text: str(v.text, 'text') };
+
   return { kind: 'label', label: str(v.label, 'label') };
 }
 
@@ -54,18 +61,22 @@ function parseKey(v: unknown): string {
   if (typeof v === 'number' || typeof v === 'boolean') {
     return bad(`press key ${String(v)} is not text: put it in quotes, for example press: "${String(v)}"`);
   }
+
   if (typeof v !== 'string' || !v) return bad('press needs a key, such as Enter or Control+A');
+
   if (!KEY_RE.test(v)) {
     return bad(
       `press key ${JSON.stringify(v)} is not valid: write a key name or a single character, optionally with modifiers joined by +, such as Enter or Control+A`,
     );
   }
+
   return v;
 }
 
 function parsePress(v: unknown): { key: string; target?: Target } {
   if (!isMap(v)) return { key: parseKey(v) };
-  for (const k of Object.keys(v)) if (k !== 'key' && k !== 'target') bad(`press has unknown key \`${k}\` (allowed: key, target)`);
+  for (const k of Object.keys(v))
+    if (k !== 'key' && k !== 'target') bad(`press has unknown key \`${k}\` (allowed: key, target)`);
   if (v.key === undefined) bad('press requires a `key`');
   const key = parseKey(v.key);
   return v.target === undefined ? { key } : { key, target: parseTarget(v.target) };
@@ -98,26 +109,33 @@ function parseWait(v: unknown): WaitCondition {
 
 function parseScreenshot(v: unknown): Omit<Extract<Step, { kind: 'screenshot' }>, 'n' | 'kind'> {
   if (!isMap(v)) return bad('screenshot needs a mapping with at least `name`');
+
   for (const k of Object.keys(v)) {
     if (!['name', 'target', 'include', 'padding', 'alt'].includes(k)) {
       bad(`screenshot has unknown key \`${k}\` (allowed: name, target, include, padding, alt)`);
     }
   }
+
   if (v.name === undefined) bad('screenshot requires a `name`');
+
   if (typeof v.name !== 'string' || !NAME_RE.test(v.name)) {
     bad(`screenshot name ${JSON.stringify(v.name)} is invalid: use only letters, digits, hyphens, and underscores`);
   }
+
   const out: Omit<Extract<Step, { kind: 'screenshot' }>, 'n' | 'kind'> = { name: v.name as string, include: [] };
   if (v.target !== undefined) out.target = parseTarget(v.target);
+
   if (v.include !== undefined) {
     if (!Array.isArray(v.include)) bad('screenshot `include` must be a list of targets');
     if (out.target === undefined) bad('screenshot `include` requires a `target`');
     out.include = (v.include as unknown[]).map((t, i) => parseTarget(t, `include[${i + 1}]`));
   }
+
   if (v.padding !== undefined) {
     if (typeof v.padding !== 'number' || !(v.padding >= 0)) bad('screenshot `padding` must be a non-negative number');
     out.padding = v.padding as number;
   }
+
   if (v.alt !== undefined) {
     if (typeof v.alt !== 'string') bad('screenshot `alt` must be a string');
     out.alt = v.alt as string;
@@ -132,7 +150,9 @@ function parseStep(name: string, v: unknown, n: number, ctx: StepContext): Step 
     case 'goto': {
       if (typeof v !== 'string' || !v.trim()) return bad('goto needs a URL string');
       if (!isAbsolute(v) && !ctx.baseUrl) {
-        bad(`goto uses the relative URL \`${v}\` but no base URL is configured: set \`baseUrl\` in shotdoc.config.yaml or use an absolute URL`);
+        bad(
+          `goto uses the relative URL \`${v}\` but no base URL is configured: set \`baseUrl\` in shotdoc.config.yaml or use an absolute URL`,
+        );
       }
       return { n, kind: 'goto', url: v };
     }
@@ -170,7 +190,9 @@ export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; err
   if (!Array.isArray(doc)) {
     return {
       steps: [],
-      errors: [new ShotdocError('a shotdoc block must contain a YAML list of steps, each written as `- step: ...`', loc())],
+      errors: [
+        new ShotdocError('a shotdoc block must contain a YAML list of steps, each written as `- step: ...`', loc()),
+      ],
     };
   }
   const steps: Step[] = [];
@@ -178,7 +200,9 @@ export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; err
   doc.forEach((item: unknown, i) => {
     const n = i + 1;
     if (!isMap(item) || Object.keys(item).length !== 1) {
-      errors.push(new ShotdocError('each step must be a mapping with exactly one key, such as `- click: ...`', loc({ step: n })));
+      errors.push(
+        new ShotdocError('each step must be a mapping with exactly one key, such as `- click: ...`', loc({ step: n })),
+      );
       return;
     }
     const name = Object.keys(item)[0] as string;

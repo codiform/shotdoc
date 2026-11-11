@@ -1,6 +1,7 @@
 import { join } from 'node:path';
+import type { Response } from 'playwright';
 import { ShotdocError } from '../errors.js';
-import { describeTarget, type Block, type Step, type WaitCondition } from '../parse/types.js';
+import { type Block, describeTarget, type Step, type WaitCondition } from '../parse/types.js';
 import { takeScreenshot } from './capture.js';
 import type { Session } from './session.js';
 import { explain, locate } from './targets.js';
@@ -61,7 +62,7 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
     case 'goto': {
       const url = resolveUrl(step.url, session.config.baseUrl);
       const page = await session.openPage();
-      let response;
+      let response: Response | null;
       try {
         response = await page.goto(url);
       } catch (e) {

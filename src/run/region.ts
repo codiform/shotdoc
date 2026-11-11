@@ -48,7 +48,12 @@ export function region(rects: Rect[], padding: number, pageWidth: number, pageHe
  * Scroll offset that brings `r` fully into a viewport of the given size, moving as little
  * as possible. Assumes the region fits (width/height no larger than the viewport).
  */
-export function scrollToFit(r: Rect, scroll: { x: number; y: number }, vw: number, vh: number): { x: number; y: number } {
+export function scrollToFit(
+  r: Rect,
+  scroll: { x: number; y: number },
+  vw: number,
+  vh: number,
+): { x: number; y: number } {
   const axis = (start: number, size: number, cur: number, view: number) =>
     start < cur ? start : start + size > cur + view ? start + size - view : cur;
   return { x: axis(r.x, r.width, scroll.x, vw), y: axis(r.y, r.height, scroll.y, vh) };

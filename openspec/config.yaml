@@ -8,6 +8,11 @@ schema: spec-driven
 #   context: |
 #     Designs and tasks must cover Windows, macOS, and Linux
 #     Write all artifacts in Spanish
+context: |
+  Before finishing implementation work, run `npm run format`, then `npm run lint`,
+  `npm run typecheck` and `npm test`. Formatting is Biome's job: do not hand-format.
+  The prose in examples/todomvc/ reads as documentation for the TodoMVC app, not for
+  shotdoc; explain shotdoc features in README.md instead.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

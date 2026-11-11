@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
 import { md, runMd, runThen } from '../helpers/run.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 
 let server: FixtureServer;
 beforeAll(async () => {

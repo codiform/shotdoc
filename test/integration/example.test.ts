@@ -1,11 +1,11 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MarkdownIt from 'markdown-it';
 import { PNG } from 'pngjs';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { startFixtureServer, type FixtureServer } from '../helpers/server.js';
+import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 
 const root = join(import.meta.dirname, '..', '..');
 let server: FixtureServer;
@@ -29,7 +29,10 @@ test('builds the example end to end with the real command', async () => {
   const before = readFileSync(join(cwd, 'example.md'));
   // Async spawn: the fixture server lives in this process and must keep serving.
   const r = await new Promise<{ code: number | null; stderr: string }>((resolve) => {
-    const p = spawn('node', [join(root, 'dist', 'cli.js'), 'build', 'example.md'], { cwd, stdio: ['ignore', 'ignore', 'pipe'] });
+    const p = spawn('node', [join(root, 'dist', 'cli.js'), 'build', 'example.md'], {
+      cwd,
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
     let stderr = '';
     p.stderr.on('data', (d) => (stderr += d));
     p.on('close', (code) => resolve({ code, stderr }));
@@ -49,7 +52,12 @@ test('builds the example end to end with the real command', async () => {
   );
 
   // Images exist with the expected sizes.
-  expect(readdirSync(join(cwd, 'build', 'images', 'example')).sort()).toEqual(['count.png', 'form.png', 'menu.png', 'saved.png']);
+  expect(readdirSync(join(cwd, 'build', 'images', 'example')).sort()).toEqual([
+    'count.png',
+    'form.png',
+    'menu.png',
+    'saved.png',
+  ]);
   const size = (n: string) => {
     const p = PNG.sync.read(readFileSync(join(cwd, 'build', 'images', 'example', n)));
     return [p.width, p.height];

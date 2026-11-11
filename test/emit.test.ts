@@ -6,10 +6,16 @@ import type { Shot } from '../src/run/steps.js';
 const ref = (n: string) => `images/doc/${n}.png`;
 const shot = (name: string, alt?: string): Shot => ({ name, alt, path: `/x/${name}.png` });
 const make = (src: string, shots: Record<number, Shot[]>) =>
-  buildDocument(src, parseDocument(src, 'doc.md', { baseUrl: 'http://x.test' }), new Map(Object.entries(shots).map(([k, v]) => [Number(k), v])), ref);
+  buildDocument(
+    src,
+    parseDocument(src, 'doc.md', { baseUrl: 'http://x.test' }),
+    new Map(Object.entries(shots).map(([k, v]) => [Number(k), v])),
+    ref,
+  );
 
 test('block with two screenshots, in order, name used when no alt', () => {
-  const src = '# T\n\n```shotdoc\n- goto: /\n- screenshot: {name: home}\n- screenshot: {name: login, alt: Login form}\n```\n\nafter\n';
+  const src =
+    '# T\n\n```shotdoc\n- goto: /\n- screenshot: {name: home}\n- screenshot: {name: login, alt: Login form}\n```\n\nafter\n';
   expect(make(src, { 3: [shot('home'), shot('login', 'Login form')] })).toBe(
     '# T\n\n![home](images/doc/home.png)\n\n![Login form](images/doc/login.png)\n\nafter\n',
   );
@@ -26,7 +32,8 @@ test('non-shotdoc fences are untouched', () => {
 });
 
 test('CRLF line endings are preserved, including in generated lines', () => {
-  const src = 'a\r\n\r\n```shotdoc\r\n- goto: /\r\n- screenshot: {name: a}\r\n- screenshot: {name: b}\r\n```\r\n\r\nz\r\n';
+  const src =
+    'a\r\n\r\n```shotdoc\r\n- goto: /\r\n- screenshot: {name: a}\r\n- screenshot: {name: b}\r\n```\r\n\r\nz\r\n';
   expect(make(src, { 3: [shot('a'), shot('b')] })).toBe(
     'a\r\n\r\n![a](images/doc/a.png)\r\n\r\n![b](images/doc/b.png)\r\n\r\nz\r\n',
   );
