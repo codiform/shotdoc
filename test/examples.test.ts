@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, test } from 'vitest';
-import { loadConfig } from '../src/config.js';
+import { findConfig, loadConfig } from '../src/config.js';
 import { parseDocument } from '../src/parse/document.js';
 
 const root = join(import.meta.dirname, '..');
@@ -26,8 +26,8 @@ test('there is at least one example document', () => {
   expect(documents.length).toBeGreaterThan(0);
 });
 
-describe.each(documents)('$file', ({ dir, file }) => {
-  const config = loadConfig(dir); // the config next to the example, as `shotdoc build` would read it
+describe.each(documents)('$file', ({ file }) => {
+  const config = loadConfig(findConfig(file, root), root); // the config `shotdoc build` would find for this document
   const source = readFileSync(file, 'utf8');
   const label = relative(root, file);
 

@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import type { Response } from 'playwright';
 import { ShotdocError } from '../errors.js';
 import { type Block, describeTarget, type Step, type WaitCondition } from '../parse/types.js';
+import { resolveGoto } from '../url.js';
 import { takeScreenshot } from './capture.js';
 import type { Session } from './session.js';
 import { explain, locate } from './targets.js';
@@ -37,7 +38,7 @@ export function describeWait(c: WaitCondition): string {
 function stepTarget(step: Step): string | undefined {
   switch (step.kind) {
     case 'goto':
-      return resolveUrl(step.url, undefined);
+      return step.url;
     case 'click':
     case 'dblclick':
     case 'hover':
@@ -45,6 +46,8 @@ function stepTarget(step: Step): string | undefined {
       return describeTarget(step.target);
     case 'press':
       return step.target ? describeTarget(step.target) : `key ${step.key}`;
+    case 'unhover':
+      return undefined;
     case 'wait':
       return describeWait(step.condition);
     case 'screenshot':
@@ -52,15 +55,11 @@ function stepTarget(step: Step): string | undefined {
   }
 }
 
-function resolveUrl(url: string, base: string | undefined): string {
-  return base ? new URL(url, base).toString() : url;
-}
-
 async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
   const { session } = ctx;
   switch (step.kind) {
     case 'goto': {
-      const url = resolveUrl(step.url, session.config.baseUrl);
+      const url = resolveGoto(step.url, session.config.baseUrl);
       const page = await session.openPage();
       let response: Response | null;
       try {
@@ -94,6 +93,10 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
       }
       return;
     }
+    case 'unhover':
+      // The top-left corner is almost always empty; the page's pointer-leave handlers run as it moves.
+      await session.page.mouse.move(0, 0);
+      return;
     case 'fill': {
       const what = describeTarget(step.target);
       try {

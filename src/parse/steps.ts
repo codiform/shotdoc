@@ -1,5 +1,6 @@
 import { parse } from 'yaml';
 import { type ErrorLocation, ShotdocError } from '../errors.js';
+import { isAbsoluteUrl } from '../url.js';
 import { describeTarget, type Step, type Target, type WaitCondition } from './types.js';
 
 export interface StepContext {
@@ -8,7 +9,7 @@ export interface StepContext {
   baseUrl?: string;
 }
 
-const STEP_NAMES = ['goto', 'click', 'dblclick', 'hover', 'fill', 'press', 'wait', 'screenshot'];
+const STEP_NAMES = ['goto', 'click', 'dblclick', 'hover', 'unhover', 'fill', 'press', 'wait', 'screenshot'];
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
 const isMap = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -143,13 +144,11 @@ function parseScreenshot(v: unknown): Omit<Extract<Step, { kind: 'screenshot' }>
   return out;
 }
 
-const isAbsolute = (u: string) => /^[a-z][a-z0-9+.-]*:/i.test(u);
-
 function parseStep(name: string, v: unknown, n: number, ctx: StepContext): Step {
   switch (name) {
     case 'goto': {
       if (typeof v !== 'string' || !v.trim()) return bad('goto needs a URL string');
-      if (!isAbsolute(v) && !ctx.baseUrl) {
+      if (!isAbsoluteUrl(v) && !ctx.baseUrl) {
         bad(
           `goto uses the relative URL \`${v}\` but no base URL is configured: set \`baseUrl\` in shotdoc.config.yaml or use an absolute URL`,
         );
@@ -160,6 +159,9 @@ function parseStep(name: string, v: unknown, n: number, ctx: StepContext): Step 
     case 'dblclick':
     case 'hover':
       return { n, kind: name, target: parseTarget(v) };
+    case 'unhover':
+      if (v !== null && v !== undefined) bad('unhover takes no value: write `- unhover:` with nothing after the colon');
+      return { n, kind: 'unhover' };
     case 'fill': {
       if (!isMap(v)) return bad('fill needs a mapping with `target` and `value`');
       for (const k of Object.keys(v)) if (k !== 'target' && k !== 'value') bad(`fill has unknown key \`${k}\``);

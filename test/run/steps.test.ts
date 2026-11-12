@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { md, runMd } from '../helpers/run.js';
+import { md, runMd, runThen } from '../helpers/run.js';
 import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
 
 let server: FixtureServer;
@@ -37,6 +37,24 @@ describe('session', () => {
   test('acting before goto fails and says to begin with a goto', async () => {
     const m = await fails(md('- click: "#save"'));
     expect(m).toMatch(/doc\.md:1 \(step 1, css=#save\).*begin the first block with a `goto`/);
+  });
+});
+
+describe('goto under a base path', () => {
+  const where = (base: string, steps: string) =>
+    runThen(md(steps), base, async (page) => page.locator('#where').innerText());
+
+  test.each(['/app/', '/app'])('goto: / reaches the context root of a base URL ending %s', async (suffix) => {
+    expect(await where(`${server.url}${suffix}`, '- goto: /')).toBe('app home');
+  });
+
+  test('a path under the context root stays under it', async () => {
+    expect(await where(`${server.url}/app`, '- goto: /other.html')).toBe('app other');
+    expect(await where(`${server.url}/app/`, '- goto: other.html')).toBe('app other');
+  });
+
+  test('an absolute URL still reaches anything', async () => {
+    expect(await where(`${server.url}/app/`, `- goto: ${server.url}/form.html\n- goto: /other.html`)).toBe('app other');
   });
 });
 

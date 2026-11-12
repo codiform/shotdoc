@@ -1,8 +1,8 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 const root = join(import.meta.dirname, '..');
@@ -88,4 +88,64 @@ test('missing Chromium gives the install command', async () => {
   } finally {
     rmSync(empty, { recursive: true, force: true });
   }
+});
+
+describe('configuration discovery and --config', () => {
+  const cfg = () => `baseUrl: ${server.url}\n`;
+  const nested = () => {
+    mkdirSync(join(cwd, 'ex/input'), { recursive: true });
+    write('ex/shotdoc.config.yaml', `${cfg()}outDir: output\n`);
+    write('ex/input/g.md', GOOD);
+  };
+
+  test('from a parent directory, the config above the source is found and output lands beside it', async () => {
+    nested();
+    const r = await run(['build', 'ex/input/g.md']);
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/^Using ex\/shotdoc\.config\.yaml$/m);
+    expect(r.out).toMatch(/Built ex\/output\/g\.md \(1 image\)/);
+    expect(existsSync(join(cwd, 'ex/output/images/g/home.png'))).toBe(true);
+    expect(existsSync(join(cwd, 'build'))).toBe(false);
+  });
+
+  test('a build with the config in the working directory prints no Using line', async () => {
+    write('g.md', GOOD);
+    const r = await run(['build', 'g.md']);
+    expect(r.code).toBe(0);
+    expect(r.out).not.toMatch(/Using/);
+  });
+
+  test.each([
+    ['--config before the source', ['build', '--config', 'other.yaml', 'ex/input/g.md']],
+    ['--config after the source', ['build', 'ex/input/g.md', '--config', 'other.yaml']],
+    ['--config=value', ['build', '--config=other.yaml', 'ex/input/g.md']],
+  ])('%s overrides a nearer config', async (_name, args) => {
+    nested();
+    write('other.yaml', `${cfg()}outDir: other-out\n`);
+    const r = await run(args);
+    expect(r.code).toBe(0);
+    expect(existsSync(join(cwd, 'other-out/g.md'))).toBe(true);
+    expect(existsSync(join(cwd, 'ex/output'))).toBe(false);
+  });
+
+  test('a missing config file fails naming it and writes nothing', async () => {
+    write('g.md', GOOD);
+    const r = await run(['build', 'g.md', '--config', 'nope.yaml']);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/error: configuration file not found: nope\.yaml/);
+    expect(existsSync(join(cwd, 'build'))).toBe(false);
+  });
+
+  test.each([
+    ['a missing value', ['build', 'g.md', '--config'], /--config needs a file path/],
+    ['a repeated option', ['build', 'g.md', '--config', 'a', '--config', 'b'], /more than once/],
+    ['an unknown option', ['build', 'g.md', '--out', 'x'], /unknown option --out/],
+    ['two sources', ['build', 'g.md', 'h.md'], /only one source file/],
+    ['no source', ['build', '--config', 'a.yaml'], /no source file given/],
+  ])('%s is a usage error', async (_name, args, message) => {
+    const r = await run(args);
+    expect(r.code).toBe(2);
+    expect(r.err).toMatch(message);
+    expect(r.err).toContain('Usage: shotdoc build');
+  });
 });

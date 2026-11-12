@@ -5,7 +5,7 @@ The playwright website has an example of a TODO MVC application that demonstrate
 When you first arrive on the TODO MVC page, you will see an empty list and a textbox where you can enter new tasks:
 
 ```shotdoc
-- goto: ./
+- goto: /
 - wait: {visible: {role: textbox, name: What needs to be done}}
 - screenshot:
     name: empty
@@ -44,6 +44,7 @@ Each task has a checkbox. You can mark it complete by clicking the checkbox:
 ```shotdoc
 - click: "li:has-text('Water the plants') >> role=checkbox"
 - wait: {text: 2 items left}
+- unhover:
 - screenshot: {name: completed, target: body, padding: 16, alt: The second task crossed out}
 ```
 

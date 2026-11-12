@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { ShotdocError } from './errors.js';
 
@@ -15,17 +15,53 @@ export interface Config {
 
 const KEYS = ['baseUrl', 'outDir', 'viewport', 'deviceScaleFactor'];
 
-export function loadConfig(cwd: string): Config {
-  const path = join(cwd, CONFIG_FILE);
+/**
+ * Chooses the configuration file: the one named with `--config`, otherwise the nearest
+ * `shotdoc.config.yaml` from the source file's directory upward, otherwise the working
+ * directory's. Returns undefined when there is none.
+ */
+export function findConfig(source: string, cwd: string, explicit?: string): string | undefined {
+  if (explicit !== undefined) {
+    const path = resolve(cwd, explicit);
+    if (!existsSync(path) || !statSync(path).isFile()) {
+      throw new ShotdocError(`configuration file not found: ${explicit}`);
+    }
+    return path;
+  }
+  let dir = dirname(resolve(cwd, source));
+  for (;;) {
+    const candidate = join(dir, CONFIG_FILE);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const fallback = join(cwd, CONFIG_FILE);
+  return existsSync(fallback) ? fallback : undefined;
+}
+
+/**
+ * Reads and validates a configuration file (none means all defaults). A relative `outDir`
+ * resolves against the file's directory, or against `cwd` when there is no file.
+ */
+export function loadConfig(file: string | undefined, cwd: string = process.cwd()): Config {
+  const name = file === undefined ? CONFIG_FILE : relative(cwd, file) || CONFIG_FILE;
+  const base = file === undefined ? cwd : dirname(file);
   let raw: unknown = {};
-  if (existsSync(path)) {
+  if (file !== undefined) {
+    let text: string;
     try {
-      raw = parse(readFileSync(path, 'utf8')) ?? {};
+      text = readFileSync(file, 'utf8');
     } catch (e) {
-      throw new ShotdocError(`invalid YAML: ${(e as Error).message}`, { file: CONFIG_FILE });
+      throw new ShotdocError(`cannot read the configuration file: ${(e as Error).message}`, { file: name });
+    }
+    try {
+      raw = parse(text) ?? {};
+    } catch (e) {
+      throw new ShotdocError(`invalid YAML: ${(e as Error).message}`, { file: name });
     }
   }
-  const fail = (reason: string) => new ShotdocError(reason, { file: CONFIG_FILE });
+  const fail = (reason: string) => new ShotdocError(reason, { file: name });
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw fail('must be a mapping of settings');
   }
@@ -37,7 +73,7 @@ export function loadConfig(cwd: string): Config {
   }
 
   const config: Config = {
-    outDir: resolve(cwd, 'build'),
+    outDir: resolve(base, 'build'),
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 2,
   };
@@ -53,7 +89,7 @@ export function loadConfig(cwd: string): Config {
   }
   if (obj.outDir !== undefined) {
     if (typeof obj.outDir !== 'string' || !obj.outDir) throw fail('`outDir` must be a non-empty string');
-    config.outDir = resolve(cwd, obj.outDir);
+    config.outDir = resolve(base, obj.outDir);
   }
   if (obj.viewport !== undefined) {
     const v = obj.viewport as Record<string, unknown> | null;

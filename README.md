@@ -12,11 +12,10 @@ The source file stays valid Markdown. Without building, a `shotdoc` block just r
 - [`output/todo-mvc.md`](examples/todomvc/output/todo-mvc.md) is what `shotdoc build` produces, with its screenshots in [`output/images/`](examples/todomvc/output/images/todo-mvc/).
 - [`shotdoc.config.yaml`](examples/todomvc/shotdoc.config.yaml) sets the base URL and output directory.
 
-To rebuild it, run the build from inside the example directory, because the config file is read from the working directory:
+To rebuild it, run this from the project root. The build finds the example's config file above the source and writes the output beside it:
 
 ```sh
-cd examples/todomvc
-shotdoc build input/todo-mvc.md
+shotdoc build examples/todomvc/input/todo-mvc.md
 ```
 
 ## Prerequisites
@@ -45,16 +44,35 @@ All blocks are checked before a browser is launched, and every problem found is 
 
 ## Configuration
 
-Optional `shotdoc.config.yaml` in the directory you run `shotdoc` from. Unknown keys are an error.
+Settings come from an optional `shotdoc.config.yaml`. Unknown keys are an error. The file is chosen in this order:
+
+1. The file named with `--config <file>`, if you give one: `shotdoc build --config shared/shotdoc.config.yaml guide.md`. It is an error if it does not exist.
+2. Otherwise the nearest `shotdoc.config.yaml` found by looking in the source file's directory, then each parent directory above it.
+3. Otherwise `shotdoc.config.yaml` in the directory you run `shotdoc` from, if there is one.
+
+When the file used is not in the directory you run `shotdoc` from, the build says so (`Using examples/todomvc/shotdoc.config.yaml`), so a file picked up from a parent directory is never a surprise. A relative `outDir` is resolved against the directory holding the config file, so the same file writes to the same place wherever you run the build from.
 
 ```yaml
-baseUrl: https://demo.example.test   # used to resolve relative `goto` URLs
+baseUrl: https://demo.example.test   # context root for `goto` paths (see below)
 outDir: build                        # default: build
 viewport: { width: 1280, height: 800 }   # defaults
 deviceScaleFactor: 2                 # default
 ```
 
 Rendering always uses locale `en-US` and timezone `UTC`.
+
+### Base URL and `goto`
+
+A `goto` that is not a full URL is a *context path*: it is resolved against `baseUrl` treated as a directory. So `/` is the base URL itself (the application's context root), not the host's root, and `/login` goes to the base URL's path followed by `login`. A trailing slash on `baseUrl` makes no difference:
+
+| `baseUrl` | `goto` | Goes to |
+| --- | --- | --- |
+| `https://demo.example.test` | `/login` | `https://demo.example.test/login` |
+| `https://demo.example.test/todos/` | `/` | `https://demo.example.test/todos/` |
+| `https://demo.example.test/todos` | `/login` | `https://demo.example.test/todos/login` |
+| `https://demo.example.test/todos/` | `https://other.example.test/x` | `https://other.example.test/x` |
+
+This differs from standard URL resolution, where `/` means the host's root. To reach something outside the base URL's path, write a full URL.
 
 ## Blocks
 
@@ -75,6 +93,7 @@ All blocks in a document share one browser session: a later block continues on t
 | `click` | `- click: <target>` |
 | `dblclick` | `- dblclick: <target>` |
 | `hover` | `- hover: <target>` |
+| `unhover` | `- unhover:` (no value) |
 | `fill` | `- fill: {target: <target>, value: "text"}` |
 | `press` | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
 | `wait` | `- wait: <condition>` (see below) |
@@ -140,7 +159,15 @@ A key is a single character (`a`) or a key name such as `Enter`, `Escape`, `Tab`
 - screenshot: {name: delete-control, target: "li:has-text('Ship it')"}
 ```
 
-The pointer stays where the last pointer step left it. `hover`, `click`, and `dblclick` all move it, and nothing moves it away otherwise, so the hover state is still there in later screenshots, including those in later blocks. This also means a hover effect can appear without a `hover` step: after you click a row's checkbox, the pointer is still over that row, so its delete button is showing in the next screenshot. To end a hover, hover over or click something neutral.
+The pointer stays where the last pointer step left it. `hover`, `click`, and `dblclick` all move it, and nothing moves it away otherwise, so the hover state is still there in later screenshots, including those in later blocks. This also means a hover effect can appear without a `hover` step: after you click a row's checkbox, the pointer is still over that row, so its delete button is showing in the next screenshot. To end a hover, use `unhover`. It takes no value and moves the pointer to the top-left corner of the page, which is almost always empty:
+
+```shotdoc
+- click: {role: checkbox, name: Toggle Todo}
+- unhover:
+- screenshot: {name: ticked}
+```
+
+If something on your page reacts to the corner, `hover` over a neutral element instead.
 
 ### Screenshots
 

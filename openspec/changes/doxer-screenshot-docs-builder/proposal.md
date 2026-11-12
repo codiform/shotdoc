@@ -23,10 +23,13 @@
 > |---|---|---|---|
 > | 1 | `spike-screenshot-quality` | archived 2026-11-08 | old task group 2; findings in the archive |
 > | 2 | `core-build-pipeline` | archived 2026-11-08 | setup; `doc-build`; `block-language` (YAML steps only, no `js`, no state attributes); simple session (continue by default, first block starts clean); basic capture (viewport/element crop, padding, stable rendering) |
+> | 2a | `more-steps` | archived 2026-11-11 | not in the original plan: `press`, `dblclick`, `hover` and selector syntax, found by extending the TodoMVC example |
 > | 3 | `annotations-and-stability` | planned | annotation parts of `screenshot-capture` (highlight, arrow, badge, hide, mask); freeze by replaying responses; blank-capture guard and determinism checks |
 > | 4 | `js-blocks` | planned | `js` escape hatch from `block-language`; the `js` runtime task |
 > | 5 | `session-state-and-auth` | planned | rest of `session-state`: named states, `save=`, interactive login, validity checks, saved states as secrets; front-matter default state |
 > | later | HTML templating (Pandoc candidate), CI login, rebuild caching | unscheduled | none |
+>
+> Remaining work is now tracked as GitHub issues (annotations, masking and stability are #1 to #3, `js` blocks #4, session state #5).
 >
 > Order after #2 was a recommendation from the spike (annotations before session state), not a
 > settled decision. Capabilities started in an earlier change (`session-state`,

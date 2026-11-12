@@ -94,3 +94,25 @@ describe('hover', () => {
     expect(countPixels(row!, RED)).toBe(0);
   });
 });
+
+describe('unhover', () => {
+  const rowShot = `- screenshot: {name: row, target: ${ROW}, padding: 0}`;
+
+  test('ends a hover: the delete control is in the image after hover, gone after unhover', async () => {
+    const { shown, gone } = await shoot(server.url, [
+      `- goto: /rows.html\n- hover: ${ROW}\n- screenshot: {name: shown, target: ${ROW}, padding: 0}\n- unhover:\n- screenshot: {name: gone, target: ${ROW}, padding: 0}`,
+    ]);
+    expect(countPixels(shown!, RED)).toBe(24 * 24 * 4);
+    expect(countPixels(gone!, RED)).toBe(0);
+  });
+
+  test('works when unhover starts a later block', async () => {
+    const { row } = await shoot(server.url, [`- goto: /rows.html\n- hover: ${ROW}`, `- unhover:\n${rowShot}`]);
+    expect(countPixels(row!, RED)).toBe(0);
+  });
+
+  test('before any goto fails with the begin-with-a-goto message', async () => {
+    const m = await fails('- unhover:');
+    expect(m).toMatch(/doc\.md:1 \(step 1\): .*begin the first block with a `goto` step/);
+  });
+});

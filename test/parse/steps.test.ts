@@ -196,8 +196,26 @@ describe.each(['dblclick', 'hover'] as const)('%s', (kind) => {
   });
 });
 
-test('hover, dblclick and press are accepted together in one block', () => {
-  const { steps, errors } = run('- goto: /\n- hover: "#a"\n- dblclick: "#b"\n- press: Enter\n');
+test('hover, unhover, dblclick and press are accepted together in one block', () => {
+  const { steps, errors } = run('- goto: /\n- hover: "#a"\n- unhover:\n- dblclick: "#b"\n- press: Enter\n');
   expect(errors).toEqual([]);
-  expect(steps.map((s) => s.kind)).toEqual(['goto', 'hover', 'dblclick', 'press']);
+  expect(steps.map((s) => s.kind)).toEqual(['goto', 'hover', 'unhover', 'dblclick', 'press']);
+});
+
+describe('unhover', () => {
+  test('a bare unhover is accepted', () => {
+    const { steps, errors } = run('- goto: /\n- unhover:\n');
+    expect(errors).toEqual([]);
+    expect(steps[1]).toMatchObject({ kind: 'unhover', n: 2 });
+  });
+
+  test.each(['body', '{x: 0}', '""', '0', 'true'])('a value %s fails naming the step', (v) => {
+    const m = msgs(`- goto: /\n- unhover: ${v}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/^a\.md:10 \(step 2\): unhover takes no value/);
+  });
+
+  test('is listed among the supported steps in the unsupported-step message', () => {
+    expect(msgs('- swipe: a\n')[0]).toMatch(/supported: .*hover, unhover, fill/);
+  });
 });

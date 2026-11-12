@@ -16,11 +16,11 @@ export interface FixtureServer {
   close(): Promise<void>;
 }
 
-/** Serves test/fixtures over HTTP on a free port. `/` serves index.html. */
+/** Serves test/fixtures over HTTP on a free port. A path ending in `/` serves that directory's index.html. */
 export async function startFixtureServer(): Promise<FixtureServer> {
   const server: Server = createServer(async (req, res) => {
     const path = new URL(req.url ?? '/', 'http://x').pathname;
-    const rel = normalize(path === '/' ? '/index.html' : path);
+    const rel = normalize(path.endsWith('/') ? `${path}index.html` : path);
     if (rel.includes('..')) {
       res.writeHead(400).end();
       return;

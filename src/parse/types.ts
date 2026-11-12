@@ -21,6 +21,7 @@ export type Step =
   | (Base & { kind: 'click'; target: Target })
   | (Base & { kind: 'dblclick'; target: Target })
   | (Base & { kind: 'hover'; target: Target })
+  | (Base & { kind: 'unhover' })
   | (Base & { kind: 'fill'; target: Target; value: string })
   | (Base & { kind: 'press'; key: string; target?: Target })
   | (Base & { kind: 'wait'; condition: WaitCondition })
