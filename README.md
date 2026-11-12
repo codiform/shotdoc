@@ -187,6 +187,8 @@ Without a `target`, the screenshot is the current viewport. With a `target`, it 
 
 Before capturing, shotdoc waits for the target and every included element to be visible and to stop moving. It does not move the viewport size; it scrolls instead. Only a region larger than the viewport is captured beyond it.
 
+A screenshot whose image is one colour throughout fails the build, with the screenshot's name and the colour in the message. That is almost always a page that has not rendered yet: add a `wait` for something that appears when the page is ready. A solid-colour element captured with `padding: 0` is also one colour; leave the default padding so the page around it is in the image.
+
 ### Waiting
 
 Clicking returns before the page has necessarily updated. When a screenshot should show the result of an action, wait for something that proves the page is ready:
@@ -211,5 +213,7 @@ Every wait gives up after 10 seconds and the build fails with the condition name
 
 - The timeout is fixed at 10 seconds.
 - Regions larger than the viewport are captured by resizing the page, which can blank apps that re-render on resize or scroll an inner container.
+- CSS animations and transitions are settled before each screenshot, but motion driven by script (an animation loop, a timer that changes the page) is not frozen, so a page with such motion can give different images on different builds.
 - Pixel-identical output across different machines is not guaranteed.
+- Only an image that is one colour throughout is rejected as blank. A page that is partly blank, such as an empty panel inside a populated page, is not detected.
 - No annotations, hiding or masking, named login states, JavaScript blocks, HTML output, or caching yet.

@@ -1,11 +1,16 @@
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { parseDocument } from '../../src/parse/document.js';
 import type { Step } from '../../src/parse/types.js';
 import { takeScreenshot } from '../../src/run/capture.js';
+import { runDocument } from '../../src/run/run.js';
 import { Session } from '../../src/run/session.js';
-import { testConfig } from '../helpers/run.js';
+import { md, testConfig } from '../helpers/run.js';
 import { type FixtureServer, startFixtureServer } from '../helpers/server.js';
-import { everyPixelIs, pixel, shoot } from '../helpers/shot.js';
+import { pixel, shoot, solidWithBorder } from '../helpers/shot.js';
 
 const cssShot = (name: string, selector: string, padding: number): Extract<Step, { kind: 'screenshot' }> => ({
   n: 1,
@@ -80,7 +85,7 @@ describe('readiness', () => {
   test('waits for a sliding element to stop and shows it in its final position', async () => {
     const { s } = await shoot(server.url, go('slide.html', '{name: s, target: "#card", padding: 0}'));
     expect([s!.width, s!.height]).toEqual([400, 200]);
-    expect(everyPixelIs(s!, [255, 0, 0])).toBe(true);
+    expect(solidWithBorder(s!, [255, 0, 0])).toBe(true);
   });
 
   test('a target that stays hidden fails naming it', async () => {
@@ -142,13 +147,13 @@ describe('viewport-first capture', () => {
   test('element below the fold is scrolled into view', async () => {
     const { d } = await shoot(server.url, go('fold.html', '{name: d, target: "#deep", padding: 0}'));
     expect([d!.width, d!.height]).toEqual([400, 200]);
-    expect(everyPixelIs(d!, [0, 0, 255])).toBe(true);
+    expect(solidWithBorder(d!, [0, 0, 255])).toBe(true);
   });
 
   test('a region that needs scrolling to fit is captured whole', async () => {
     const { s } = await shoot(server.url, go('fold.html', '{name: s, target: "#straddle", padding: 0}'));
     expect([s!.width, s!.height]).toEqual([400, 300]);
-    expect(everyPixelIs(s!, [0, 0, 255])).toBe(true);
+    expect(solidWithBorder(s!, [0, 0, 255])).toBe(true);
   });
 
   test('a page that redraws on resize is not blanked and the viewport is untouched', async () => {
@@ -160,7 +165,7 @@ describe('viewport-first capture', () => {
       const p = `${process.env.TMPDIR ?? '/tmp'}/shotdoc-resize.png`;
       await takeScreenshot(session, step, p);
       const img = PNG.sync.read((await import('node:fs')).readFileSync(p));
-      expect(everyPixelIs(img, [0, 160, 0])).toBe(true);
+      expect(solidWithBorder(img, [0, 160, 0])).toBe(true);
       expect(await page.evaluate(() => (window as unknown as { resized: number }).resized)).toBe(0);
       expect(page.viewportSize()).toEqual({ width: 1280, height: 800 });
     } finally {
@@ -171,6 +176,43 @@ describe('viewport-first capture', () => {
   test('an oversized region still produces an image', async () => {
     const { h } = await shoot(server.url, go('huge.html', '{name: h, target: "#huge", padding: 0}'));
     expect([h!.width, h!.height]).toEqual([4000, 3000]);
-    expect(everyPixelIs(h!, [200, 0, 200])).toBe(true);
+    expect(solidWithBorder(h!, [200, 0, 200])).toBe(true);
+  });
+});
+
+describe('blank captures', () => {
+  test('a viewport screenshot of an empty page fails, naming the screenshot and the colour', async () => {
+    const m = await failure(go('blank.html', '{name: b}'));
+    expect(m).toMatch(/doc\.md:1 \(step 2\): screenshot "b" is blank: every pixel is the same colour \(#ffffff\)/);
+    expect(m).toMatch(/add a wait step/);
+  });
+
+  test('a solid element with padding 0 fails and names the target', async () => {
+    const m = await failure(go('swatch.html', '{name: s, target: "#swatch", padding: 0}'));
+    expect(m).toMatch(/doc\.md:1 \(step 2, css=#swatch\): screenshot "s" is blank: .*\(#ff0000\)/);
+  });
+
+  test('the same element with the default padding succeeds, because the page around it differs', async () => {
+    const { s } = await shoot(server.url, go('swatch.html', '{name: s, target: "#swatch"}'));
+    expect([s!.width, s!.height]).toEqual([(100 + 32) * 2, (50 + 32) * 2]);
+    expect(pixel(s!, 0, 0)).toEqual([255, 255, 255]);
+    expect(pixel(s!, 40, 40)).toEqual([255, 0, 0]);
+  });
+
+  test('a page with content is not rejected', async () => {
+    const { a } = await shoot(server.url, go('index.html', '{name: a}'));
+    expect(a).toBeDefined();
+  });
+
+  test('no image is left in the stage directory after a blank screenshot fails', async () => {
+    const config = testConfig(server.url);
+    const blocks = parseDocument(md(go('blank.html', '{name: b}')), 'doc.md', { baseUrl: config.baseUrl });
+    const stageDir = mkdtempSync(join(tmpdir(), 'shotdoc-blank-'));
+    try {
+      await expect(runDocument(blocks, { config, file: 'doc.md', stageDir })).rejects.toThrow(/is blank/);
+      expect(readdirSync(stageDir)).toEqual([]);
+    } finally {
+      rmSync(stageDir, { recursive: true, force: true });
+    }
   });
 });

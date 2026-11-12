@@ -60,8 +60,9 @@ describe('goto under a base path', () => {
 
 describe('goto', () => {
   test('relative and absolute URLs', async () => {
-    await runMd(md('- goto: /form.html'), server.url);
-    await runMd(md(`- goto: ${server.url}/form.html`), server.url);
+    const urlAfter = (steps: string) => runThen(md(steps), server.url, async (page) => page.url());
+    expect(await urlAfter('- goto: /form.html')).toBe(`${server.url}/form.html`);
+    expect(await urlAfter(`- goto: ${server.url}/next.html`)).toBe(`${server.url}/next.html`);
   });
 
   test('404 fails with URL and status', async () => {
@@ -80,14 +81,17 @@ describe('goto', () => {
 
 describe('click and fill', () => {
   test('each target kind', async () => {
-    await runMd(
-      md(`- goto: /form.html
-- click: "#save"
-- click: {role: button, name: Save}
-- click: {text: Next page}
-- wait: {visible: {text: Second page}}`),
+    const out = (steps: string) =>
+      runThen(md(`- goto: /form.html\n${steps}`), server.url, async (page) => page.locator('#out').innerText());
+    expect(await out('')).toBe('');
+    expect(await out('- click: "#save"')).toBe('saved');
+    expect(await out('- click: {role: button, name: Save}')).toBe('saved');
+    const next = await runThen(
+      md('- goto: /form.html\n- click: {text: Next page}\n- wait: {visible: {text: Second page}}'),
       server.url,
+      async (page) => page.url(),
     );
+    expect(next).toBe(`${server.url}/next.html`);
   });
 
   test('fill by label and css, then verify through the page', async () => {
@@ -129,14 +133,28 @@ describe('click and fill', () => {
 
 describe('wait', () => {
   const upd = '- goto: /delayed.html\n- click: "#update"\n';
+  const pageAfter = (steps: string) =>
+    runThen(md(upd + steps), server.url, async (page) => ({
+      count: await page.locator('#count').innerText(),
+      spinners: await page.locator('#spinner').count(),
+      late: await page.locator('#late').count(),
+    }));
+
+  // The page changes 300-400 ms after the click, so a wait that returned early would see the old state.
   test('text', async () => {
-    await runMd(md(upd + '- wait: {text: 2 items left}'), server.url);
+    expect(await pageAfter('- wait: {text: 2 items left}')).toMatchObject({ count: '2 items left' });
   });
   test('visible and hidden', async () => {
-    await runMd(md(upd + '- wait: {hidden: "#spinner"}\n- wait: {visible: "#late"}'), server.url);
+    expect(await pageAfter('- wait: {hidden: "#spinner"}\n- wait: {visible: "#late"}')).toMatchObject({
+      spinners: 0,
+      late: 1,
+    });
   });
-  test('network idle and milliseconds', async () => {
-    await runMd(md(upd + '- wait: {network: idle}\n- wait: 100'), server.url);
+  test('milliseconds', async () => {
+    expect(await pageAfter('- wait: 700')).toMatchObject({ count: '2 items left', late: 1 });
+  });
+  test('network idle completes', async () => {
+    await expect(runMd(md(`${upd}- wait: {network: idle}`), server.url)).resolves.toBeDefined();
   });
   test('a condition that never holds names it', async () => {
     const m = await fails(md('- goto: /delayed.html\n- wait: {text: never appears}'));

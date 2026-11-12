@@ -1,0 +1,16 @@
+<!doctype html><meta charset=utf-8><title>Spinner</title>
+<style>
+  body{margin:0;background:#fff;font:16px sans-serif}
+  #stage{position:absolute;top:20px;left:20px;width:360px;height:140px;background:rgb(235,235,235)}
+  #spin{position:absolute;top:30px;left:40px;width:80px;height:80px;background:rgb(200,30,30);animation:turn 1s linear infinite}
+  #fade{position:absolute;top:30px;left:220px;width:80px;height:80px;background:rgb(30,30,200);opacity:0;transition:opacity 500ms}
+  #fade.on{opacity:1}
+  @keyframes turn{to{transform:rotate(360deg)}}
+</style>
+<div id=stage><div id=spin></div><div id=fade></div></div>
+<script>
+  // Read a style first so the initial opacity is computed, then change it: the transition starts now.
+  const fade = document.getElementById('fade');
+  getComputedStyle(fade).opacity;
+  fade.classList.add('on');
+</script>

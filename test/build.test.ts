@@ -109,3 +109,10 @@ test('a document with no blocks builds to an identical copy', async () => {
   const r = await build('plain.md', cwd);
   expect(readFileSync(r.builtPath, 'utf8')).toBe('# Plain\r\n\r\ntext\r\n');
 });
+
+test('a blank screenshot fails the build: no built document and no images', async () => {
+  write('guide.md', '```shotdoc\n- goto: /blank.html\n- screenshot: {name: empty}\n```\n');
+  await expect(build('guide.md', cwd)).rejects.toThrow(/guide\.md:1 \(step 2\): screenshot "empty" is blank/);
+  expect(existsSync(join(cwd, 'build', 'guide.md'))).toBe(false);
+  expect(tree(join(cwd, 'build', 'images'))).toEqual([]);
+});

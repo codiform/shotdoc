@@ -42,6 +42,28 @@ export function everyPixelIs(img: Image, rgb: [number, number, number]): boolean
   return true;
 }
 
+/**
+ * True when the image is a `fill` rectangle with a `border` ring `px` device pixels wide on every
+ * side. The fixtures give solid elements a 1px black inset border, so an exact crop shows the ring
+ * at the image edge and the image is never one colour.
+ */
+export function solidWithBorder(
+  img: Image,
+  fill: [number, number, number],
+  border: [number, number, number] = [0, 0, 0],
+  px = 2,
+): boolean {
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const onRing = x < px || y < px || x >= img.width - px || y >= img.height - px;
+      const want = onRing ? border : fill;
+      const i = (img.width * y + x) * 4;
+      if (img.data[i] !== want[0] || img.data[i + 1] !== want[1] || img.data[i + 2] !== want[2]) return false;
+    }
+  }
+  return true;
+}
+
 /** Number of pixels that are exactly this colour. */
 export function countPixels(img: Image, rgb: [number, number, number]): number {
   let n = 0;
