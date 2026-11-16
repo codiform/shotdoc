@@ -3,3 +3,5 @@ dist/
 build/
 /.editorconfig
 /.idea
+.claude/commands/opsx
+.claude/skills/openspec-*
