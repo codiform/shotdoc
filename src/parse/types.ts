@@ -30,6 +30,11 @@ export type Step =
       name: string;
       target?: Target;
       include: Target[];
+      /** Elements made invisible, keeping their space, for this capture only. */
+      hide: Target[];
+      /** Elements covered by a solid block for this capture only. */
+      mask: Target[];
+      maskColor?: string;
       padding?: number;
       alt?: string;
     });

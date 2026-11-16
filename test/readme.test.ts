@@ -21,3 +21,8 @@ test('the README documents the prerequisite and every configuration key', () => 
   expect(readme).toContain('npx playwright install chromium');
   for (const key of ['baseUrl', 'outDir', 'viewport', 'deviceScaleFactor']) expect(readme).toContain(key);
 });
+
+test('the README documents the screenshot options for hiding and masking', () => {
+  for (const key of ['hide', 'mask', 'maskColor']) expect(readme).toContain(`\`${key}\``);
+  expect(readme).toContain('### Hiding and masking');
+});

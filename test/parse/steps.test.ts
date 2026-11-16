@@ -133,6 +133,61 @@ describe('screenshot', () => {
   });
 });
 
+describe('screenshot hide, mask and maskColor', () => {
+  test('a screenshot without them has empty lists and no colour', () => {
+    const { steps, errors } = run('- screenshot: {name: a}\n');
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({ hide: [], mask: [] });
+    expect(steps[0]).not.toHaveProperty('maskColor');
+  });
+
+  test('every target form is accepted in both lists, with a colour', () => {
+    const { steps, errors } = run(
+      '- screenshot:\n    name: a\n    hide: ["#date", {text: Today}]\n    mask: [{role: img, name: Avatar}, {label: Email}]\n    maskColor: "#333"\n',
+    );
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({
+      hide: [
+        { kind: 'css', selector: '#date' },
+        { kind: 'text', text: 'Today' },
+      ],
+      mask: [
+        { kind: 'role', role: 'img', name: 'Avatar' },
+        { kind: 'label', label: 'Email' },
+      ],
+      maskColor: '#333',
+    });
+  });
+
+  test('they work without a target (viewport capture)', () => {
+    expect(run('- screenshot: {name: a, mask: ["#x"]}\n').errors).toEqual([]);
+  });
+
+  test.each(['hide', 'mask'])('%s that is not a list says it must be a list of targets', (key) => {
+    for (const v of ['"#avatar"', '{text: Today}']) {
+      const m = msgs(`- screenshot: {name: a, ${key}: ${v}}\n`);
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(new RegExp(`\`${key}\` must be a list of targets`));
+    }
+  });
+
+  test.each(['hide', 'mask'])('a bad item in %s names the key and its position', (key) => {
+    const m = msgs(`- screenshot: {name: a, ${key}: ["#ok", {name: x}]}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(new RegExp(`${key}\\[2\\]`));
+  });
+
+  test.each(['""', '"  "', '5', '{x: 1}', '[red]'])('maskColor %s is rejected', (v) => {
+    const m = msgs(`- screenshot: {name: a, maskColor: ${v}}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/\(step 1\): .*`maskColor` must be a non-empty string/);
+  });
+
+  test('the unknown-key message lists the new keys', () => {
+    expect(msgs('- screenshot: {name: a, color: red}\n')[0]).toMatch(/allowed: .*hide, mask, maskColor/);
+  });
+});
+
 describe('press', () => {
   test.each([
     ['Enter', { key: 'Enter' }],

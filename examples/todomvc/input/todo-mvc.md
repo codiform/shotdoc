@@ -11,20 +11,21 @@ When you first arrive on the TODO MVC page, you will see an empty list and a tex
     name: empty
     target: body
     padding: 16
+    hide: [{text: This is just a demo}]
 ```
 
 You can type a task into that textbox:
 
 ```shotdoc
 - fill: {target: {role: textbox, name: What needs to be done}, value: Buy milk}
-- screenshot: {name: input, target: ".todoapp", padding: 12, alt: The TodoMVC app}
+- screenshot: {name: input, target: ".todoapp", padding: 12, alt: The TodoMVC app, hide: [{text: This is just a demo}]}
 ```
 
 After you finish typing in the task, press enter to add the task:
 
 ```shotdoc
 - press: Enter
-- screenshot: {name: added, target: body, padding: 16, alt: One task in the list}
+- screenshot: {name: added, target: body, padding: 16, alt: One task in the list, hide: [{text: This is just a demo}]}
 ```
 
 Add two more tasks the same way:
@@ -34,7 +35,7 @@ Add two more tasks the same way:
 - press: Enter
 - fill: {target: {role: textbox, name: What needs to be done}, value: Call the dentist}
 - press: Enter
-- screenshot: {name: three-tasks, target: body, padding: 16, alt: Three tasks in the list}
+- screenshot: {name: three-tasks, target: body, padding: 16, alt: Three tasks in the list, hide: [{text: This is just a demo}]}
 ```
 
 ## Completing a task
@@ -45,7 +46,7 @@ Each task has a checkbox. You can mark it complete by clicking the checkbox:
 - click: "li:has-text('Water the plants') >> role=checkbox"
 - wait: {text: 2 items left}
 - unhover:
-- screenshot: {name: completed, target: body, padding: 16, alt: The second task crossed out}
+- screenshot: {name: completed, target: body, padding: 16, alt: The second task crossed out, hide: [{text: This is just a demo}]}
 ```
 
 ## Deleting and editing
@@ -54,7 +55,7 @@ The delete button appears only while the pointer is over a task. You can *hover*
 
 ```shotdoc
 - hover: "li:has-text('Call the dentist')"
-- screenshot: {name: delete-button, target: body, padding: 16, alt: The delete button showing on the third task}
+- screenshot: {name: delete-button, target: body, padding: 16, alt: The delete button showing on the third task, hide: [{text: This is just a demo}]}
 ```
 
 Double-click a task to edit it. Then fill in the new text and press Enter to save:
@@ -62,7 +63,7 @@ Double-click a task to edit it. Then fill in the new text and press Enter to sav
 ```shotdoc
 - dblclick: {text: Call the dentist}
 - fill: {target: {role: textbox, name: Edit}, value: Call the dentist at 3pm}
-- screenshot: {name: editing, target: body, padding: 16, alt: The third task in edit mode}
+- screenshot: {name: editing, target: body, padding: 16, alt: The third task in edit mode, hide: [{text: This is just a demo}]}
 - press: Enter
 ```
 
@@ -73,7 +74,7 @@ The links at the bottom filter the list. You can click the *Active* link to show
 ```shotdoc
 - click: {role: link, name: Active}
 - wait: {hidden: {text: Water the plants}}
-- screenshot: {name: active, target: body, padding: 16, alt: Only the tasks that are not completed}
+- screenshot: {name: active, target: body, padding: 16, alt: Only the tasks that are not completed, hide: [{text: This is just a demo}]}
 ```
 
 Or, you can clear the completed tasks with the link on the right, and then even when viewing *All* tasks, the completed tasks are gone:
@@ -83,5 +84,5 @@ Or, you can clear the completed tasks with the link on the right, and then even 
 - wait: {visible: {text: Water the plants}}
 - click: {role: button, name: Clear completed}
 - wait: {hidden: {text: Water the plants}}
-- screenshot: {name: cleared, target: body, padding: 16, alt: The list after clearing the completed task}
+- screenshot: {name: cleared, target: body, padding: 16, alt: The list after clearing the completed task, hide: [{text: This is just a demo}]}
 ```

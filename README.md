@@ -97,7 +97,7 @@ All blocks in a document share one browser session: a later block continues on t
 | `fill` | `- fill: {target: <target>, value: "text"}` |
 | `press` | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
 | `wait` | `- wait: <condition>` (see below) |
-| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], padding: 16, alt: "..."}` |
+| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", padding: 16, alt: "..."}` |
 
 ### Targets
 
@@ -189,6 +189,29 @@ Before capturing, shotdoc waits for the target and every included element to be 
 
 A screenshot whose image is one colour throughout fails the build, with the screenshot's name and the colour in the message. That is almost always a page that has not rendered yet: add a `wait` for something that appears when the page is ready. A solid-colour element captured with `padding: 0` is also one colour; leave the default padding so the page around it is in the image.
 
+### Hiding and masking
+
+Some things should not be in a screenshot: an account name, an avatar, a date that changes every day, a banner that is not part of what you are documenting. A screenshot can leave them out with two lists of targets:
+
+```shotdoc
+- goto: /rows.html
+- screenshot:
+    name: list
+    target: body
+    hide: ["#banner"]
+    mask: ["li .date", {role: img, name: Avatar}]
+    maskColor: "#999"
+```
+
+- `hide` makes the elements invisible. They keep their space, so nothing around them moves: where a banner was, the image shows an empty band of the page background.
+- `mask` covers the elements with a solid block of one colour. The block is grey (`#555555`) unless you give `maskColor`, which can be any CSS colour. It works for a region larger than the viewport too.
+
+Targets are the same forms as everywhere else, with one difference: a `hide` or `mask` target may match several elements, and all of them are hidden or masked. That makes it easy to mask a date in every row. It must match at least one element. Shotdoc waits for one to appear, and the step fails if none does, so a selector that stops matching after a page change does not quietly leave the data in the image.
+
+Both apply to that one screenshot only. The page is put back afterwards, so later screenshots show the elements as normal. To leave an element out of several screenshots, list it in each.
+
+Masking removes the content from the image, so it does not suit a screenshot meant to show that content. If an image is one colour throughout after masking (a mask covering everything captured), the build fails as for any blank image, and the message mentions the mask.
+
 ### Waiting
 
 Clicking returns before the page has necessarily updated. When a screenshot should show the result of an action, wait for something that proves the page is ready:
@@ -216,4 +239,4 @@ Every wait gives up after 10 seconds and the build fails with the condition name
 - CSS animations and transitions are settled before each screenshot, but motion driven by script (an animation loop, a timer that changes the page) is not frozen, so a page with such motion can give different images on different builds.
 - Pixel-identical output across different machines is not guaranteed.
 - Only an image that is one colour throughout is rejected as blank. A page that is partly blank, such as an empty panel inside a populated page, is not detected.
-- No annotations, hiding or masking, named login states, JavaScript blocks, HTML output, or caching yet.
+- No annotations, named login states, JavaScript blocks, HTML output, or caching yet.

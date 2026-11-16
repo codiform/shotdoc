@@ -10,6 +10,7 @@ export interface StepContext {
 }
 
 const STEP_NAMES = ['goto', 'click', 'dblclick', 'hover', 'unhover', 'fill', 'press', 'wait', 'screenshot'];
+const SCREENSHOT_KEYS = ['name', 'target', 'include', 'hide', 'mask', 'maskColor', 'padding', 'alt'];
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
 const isMap = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -112,8 +113,8 @@ function parseScreenshot(v: unknown): Omit<Extract<Step, { kind: 'screenshot' }>
   if (!isMap(v)) return bad('screenshot needs a mapping with at least `name`');
 
   for (const k of Object.keys(v)) {
-    if (!['name', 'target', 'include', 'padding', 'alt'].includes(k)) {
-      bad(`screenshot has unknown key \`${k}\` (allowed: name, target, include, padding, alt)`);
+    if (!SCREENSHOT_KEYS.includes(k)) {
+      bad(`screenshot has unknown key \`${k}\` (allowed: ${SCREENSHOT_KEYS.join(', ')})`);
     }
   }
 
@@ -123,13 +124,31 @@ function parseScreenshot(v: unknown): Omit<Extract<Step, { kind: 'screenshot' }>
     bad(`screenshot name ${JSON.stringify(v.name)} is invalid: use only letters, digits, hyphens, and underscores`);
   }
 
-  const out: Omit<Extract<Step, { kind: 'screenshot' }>, 'n' | 'kind'> = { name: v.name as string, include: [] };
+  const out: Omit<Extract<Step, { kind: 'screenshot' }>, 'n' | 'kind'> = {
+    name: v.name as string,
+    include: [],
+    hide: [],
+    mask: [],
+  };
   if (v.target !== undefined) out.target = parseTarget(v.target);
 
   if (v.include !== undefined) {
     if (!Array.isArray(v.include)) bad('screenshot `include` must be a list of targets');
     if (out.target === undefined) bad('screenshot `include` requires a `target`');
     out.include = (v.include as unknown[]).map((t, i) => parseTarget(t, `include[${i + 1}]`));
+  }
+
+  for (const key of ['hide', 'mask'] as const) {
+    const list = v[key];
+    if (list === undefined) continue;
+    if (!Array.isArray(list)) bad(`screenshot \`${key}\` must be a list of targets`);
+    out[key] = (list as unknown[]).map((t, i) => parseTarget(t, `${key}[${i + 1}]`));
+  }
+
+  if (v.maskColor !== undefined) {
+    if (typeof v.maskColor !== 'string' || !v.maskColor.trim())
+      bad('screenshot `maskColor` must be a non-empty string');
+    out.maskColor = v.maskColor as string;
   }
 
   if (v.padding !== undefined) {

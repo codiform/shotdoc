@@ -18,6 +18,8 @@ const cssShot = (name: string, selector: string, padding: number): Extract<Step,
   name,
   target: { kind: 'css', selector },
   include: [],
+  hide: [],
+  mask: [],
   padding,
 });
 
