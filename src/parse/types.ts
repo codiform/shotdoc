@@ -11,6 +11,19 @@ export type WaitCondition =
   | { kind: 'network' }
   | { kind: 'ms'; ms: number };
 
+export const ANNOTATION_KINDS = ['highlight', 'arrow', 'badge'] as const;
+export type AnnotationKind = (typeof ANNOTATION_KINDS)[number];
+export const ARROW_SIDES = ['left', 'right', 'top', 'bottom'] as const;
+export type ArrowSide = (typeof ARROW_SIDES)[number];
+
+/** Something drawn over one element in one screenshot. `from` is only meaningful for an arrow. */
+export interface Annotation {
+  kind: AnnotationKind;
+  target: Target;
+  color?: string;
+  from?: ArrowSide;
+}
+
 interface Base {
   /** 1-based position within the block. */
   n: number;
@@ -35,6 +48,8 @@ export type Step =
       /** Elements covered by a solid block for this capture only. */
       mask: Target[];
       maskColor?: string;
+      /** Drawn over the page for this capture only, in order. */
+      annotate: Annotation[];
       padding?: number;
       alt?: string;
     });

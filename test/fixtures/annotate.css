@@ -1,0 +1,11 @@
+body { margin: 0; background: rgb(245,245,245); height: 2200px; position: relative; }
+section { position: absolute; }
+#a { left: 400px; top: 300px; width: 100px; height: 50px; background: rgb(0,0,200); }
+#b { left: 560px; top: 300px; width: 100px; height: 50px; background: rgb(0,150,0); }
+#panel { left: 300px; top: 400px; width: 400px; height: 120px; background: rgb(255,255,255); box-shadow: inset 0 0 0 1px rgb(0,0,0); }
+#inner { left: 340px; top: 430px; width: 80px; height: 40px; background: rgb(200,0,0); }
+#edge { left: 1220px; top: 600px; width: 60px; height: 40px; background: rgb(200,0,0); }
+#tall { left: 900px; top: 100px; width: 300px; height: 1600px; background: rgb(255,255,255); box-shadow: inset 0 0 0 1px rgb(0,0,0); }
+#far { left: 950px; top: 1300px; width: 100px; height: 40px; background: rgb(150,0,150); }
+.twin { top: 700px; width: 50px; height: 30px; background: rgb(0,150,150); }
+#t1 { left: 200px; } #t2 { left: 280px; }

@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import type { Locator, Page } from 'playwright';
 import { ShotdocError } from '../errors.js';
 import { describeTarget, type Step, type Target } from '../parse/types.js';
+import { drawAnnotations, planAnnotations } from './annotate.js';
 import { blankColour } from './blank.js';
 import { type Rect, region, scrollToFit } from './region.js';
 import { type Session, TIMEOUT_MS } from './session.js';
@@ -62,7 +63,7 @@ interface Geometry {
   scroll: { x: number; y: number };
 }
 
-async function measure(page: Page, locators: Locator[]): Promise<Geometry> {
+async function measure(page: Page, locators: Locator[], pageSize?: Effects['pageSize']): Promise<Geometry> {
   const rects: Rect[] = [];
   for (const l of locators) {
     rects.push(
@@ -78,7 +79,7 @@ async function measure(page: Page, locators: Locator[]): Promise<Geometry> {
     x: window.scrollX,
     y: window.scrollY,
   }));
-  return { rects, page: { width: env.width, height: env.height }, scroll: { x: env.x, y: env.y } };
+  return { rects, page: pageSize ?? { width: env.width, height: env.height }, scroll: { x: env.x, y: env.y } };
 }
 
 const contains = (clip: Rect, sx: number, sy: number, vw: number, vh: number) =>
@@ -86,13 +87,26 @@ const contains = (clip: Rect, sx: number, sy: number, vw: number, vh: number) =>
 
 type ScreenshotStep = Extract<Step, { kind: 'screenshot' }>;
 
-/** What a capture needs on top of `SHOT_OPTS` for this screenshot's `hide` and `mask`. */
+/** What a capture needs on top of `SHOT_OPTS` for this screenshot's `hide`, `mask` and `annotate`. */
 interface Effects {
   /** Extra Playwright screenshot options (the mask). */
   opts: { mask?: Locator[]; maskColor?: string };
   masked: boolean;
-  /** Puts every hidden element back as it was. */
+  /** Where the annotations were drawn, which the captured region must include. */
+  bounds: Rect[];
+  /**
+   * The page's size from before anything was drawn. An annotation hanging off the right or bottom
+   * edge makes the page scroll further, and the region is cut at the page edge, not at that.
+   */
+  pageSize?: { width: number; height: number };
+  /** Puts every hidden element back and takes every annotation off. */
   restore: () => Promise<void>;
+}
+
+/** An annotation target to draw on, with the target waited for and resolved. */
+interface AnnotationLocator {
+  locator: Locator;
+  step: ScreenshotStep['annotate'][number];
 }
 
 /** Waits for at least one element to match, so a selector that matches nothing is a failure. */
@@ -106,19 +120,35 @@ async function requireMatch(locator: Locator, option: 'hide' | 'mask', target: T
 }
 
 /**
- * Applies the screenshot's `hide` and `mask` once its target is ready. Hiding sets
- * `visibility: hidden` on every match, which keeps each element's space, and remembers the old
- * inline value so `restore` can put it back. The mask is painted by Playwright into the image only.
+ * Applies the screenshot's `hide`, `mask` and `annotate` once its targets are ready. Everything
+ * that can fail is checked before the page is touched. Hiding sets `visibility: hidden` on every
+ * match, which keeps each element's space, and remembers the old inline value so `restore` can put
+ * it back. Annotations are then drawn in an overlay, after the page's size is measured, and their
+ * bounds are returned for the captured region; `restore` removes the overlay. The mask is painted
+ * by Playwright into the image only, so it covers annotations too.
  */
-async function applyEffects(page: Page, step: ScreenshotStep): Promise<Effects> {
+async function applyEffects(page: Page, step: ScreenshotStep, annotations: AnnotationLocator[]): Promise<Effects> {
   const hide = step.hide.map((t) => ({ t, loc: locate(page, t) }));
   const mask = step.mask.map((t) => ({ t, loc: locate(page, t) }));
 
   if (step.maskColor !== undefined && !(await page.evaluate((c) => CSS.supports('color', c), step.maskColor))) {
     throw new ShotdocError(`maskColor "${step.maskColor}" is not a colour the browser understands`);
   }
+  for (const a of annotations) {
+    const color = a.step.color;
+    if (color !== undefined && !(await page.evaluate((c) => CSS.supports('color', c), color))) {
+      throw new ShotdocError(`${a.step.kind} color "${color}" is not a colour the browser understands`);
+    }
+  }
   for (const { t, loc } of hide) await requireMatch(loc, 'hide', t);
   for (const { t, loc } of mask) await requireMatch(loc, 'mask', t);
+
+  const pageSize = annotations.length
+    ? await page.evaluate(() => ({
+        width: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+        height: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+      }))
+    : undefined;
 
   for (const { loc } of hide) {
     await loc.evaluateAll((els) => {
@@ -136,7 +166,9 @@ async function applyEffects(page: Page, step: ScreenshotStep): Promise<Effects> 
     });
   }
 
+  let drawn: Awaited<ReturnType<typeof drawAnnotations>> | undefined;
   const restore = async () => {
+    await drawn?.remove();
     if (hide.length === 0) return;
     // The page can be gone when a capture fails badly; there is nothing to put back then.
     await page
@@ -151,9 +183,24 @@ async function applyEffects(page: Page, step: ScreenshotStep): Promise<Effects> 
       .catch(() => undefined);
   };
 
+  if (annotations.length) {
+    try {
+      const plans = planAnnotations(annotations.map((a) => a.step));
+      drawn = await drawAnnotations(
+        page,
+        annotations.map((a, i) => ({ locator: a.locator, plan: plans[i]! })),
+      );
+    } catch (e) {
+      await restore();
+      throw e;
+    }
+  }
+
   return {
     opts: mask.length ? { mask: mask.map((m) => m.loc), maskColor: step.maskColor ?? DEFAULT_MASK_COLOUR } : {},
     masked: mask.length > 0,
+    bounds: drawn?.bounds ?? [],
+    ...(pageSize ? { pageSize } : {}),
     restore,
   };
 }
@@ -174,7 +221,21 @@ export async function takeScreenshot(session: Session, step: ScreenshotStep, pat
     }
   }
 
-  const fx = await applyEffects(page, step);
+  // Annotation targets are waited for before the page is touched, so a failure leaves nothing to undo.
+  const annotations: AnnotationLocator[] = [];
+  if (step.annotate.length) await locators[0]!.scrollIntoViewIfNeeded();
+  for (const a of step.annotate) {
+    const locator = locate(page, a.target);
+    const what = describeTarget(a.target);
+    try {
+      await waitUntilReady(locator);
+    } catch (e) {
+      throw new ShotdocError(`${a.kind} target ${what}: ${explain(e, what).reason}`);
+    }
+    annotations.push({ locator, step: a });
+  }
+
+  const fx = await applyEffects(page, step, annotations);
   try {
     await capture(session, step, path, locators, fx);
   } finally {
@@ -204,8 +265,8 @@ async function capture(
   // Viewport-first: keep the viewport size unchanged whenever the region fits. Scroll as needed,
   // re-measuring because scrolling can move things (sticky headers, lazy layout).
   for (let attempt = 0; attempt < 3; attempt++) {
-    const g = await measure(page, locators);
-    const clip = region(g.rects, padding, g.page.width, g.page.height);
+    const g = await measure(page, locators, fx.pageSize);
+    const clip = region([...g.rects, ...fx.bounds], padding, g.page.width, g.page.height);
     if (clip.width > vp.width || clip.height > vp.height) break;
     if (contains(clip, g.scroll.x, g.scroll.y, vp.width, vp.height)) {
       const png = await page.screenshot({
@@ -220,7 +281,7 @@ async function capture(
   }
 
   // The region is larger than the viewport (or would not settle): capture beyond it.
-  const g = await measure(page, locators);
-  const clip = region(g.rects, padding, g.page.width, g.page.height);
+  const g = await measure(page, locators, fx.pageSize);
+  const clip = region([...g.rects, ...fx.bounds], padding, g.page.width, g.page.height);
   save(path, await page.screenshot({ clip, fullPage: true, ...shotOpts }), step.name, fx.masked);
 }

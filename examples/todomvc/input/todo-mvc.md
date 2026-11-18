@@ -55,7 +55,13 @@ The delete button appears only while the pointer is over a task. You can *hover*
 
 ```shotdoc
 - hover: "li:has-text('Call the dentist')"
-- screenshot: {name: delete-button, target: body, padding: 16, alt: The delete button showing on the third task, hide: [{text: This is just a demo}]}
+- screenshot:
+    name: delete-button
+    target: body
+    padding: 16
+    alt: The delete button showing on the third task
+    hide: [{text: This is just a demo}]
+    annotate: [{highlight: "li:has-text('Call the dentist') .destroy"}]
 ```
 
 Double-click a task to edit it. Then fill in the new text and press Enter to save:

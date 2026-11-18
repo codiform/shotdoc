@@ -188,6 +188,131 @@ describe('screenshot hide, mask and maskColor', () => {
   });
 });
 
+describe('screenshot annotate', () => {
+  const shot = (annotate: string, extra = 'target: "#t"') =>
+    `- screenshot:\n    name: a\n    ${extra}\n    annotate:\n${annotate
+      .split('\n')
+      .map((l) => `      ${l}`)
+      .join('\n')}\n`;
+
+  test('a screenshot without annotate has an empty list', () => {
+    const { steps, errors } = run('- screenshot: {name: a}\n');
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({ annotate: [] });
+  });
+
+  test('each kind takes a bare target in every form', () => {
+    const { steps, errors } = run(
+      shot(
+        '- highlight: "#save"\n- arrow: {role: button, name: Export}\n- badge: {text: Delete}\n- highlight: {label: Email}',
+      ),
+    );
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({
+      annotate: [
+        { kind: 'highlight', target: { kind: 'css', selector: '#save' } },
+        { kind: 'arrow', target: { kind: 'role', role: 'button', name: 'Export' } },
+        { kind: 'badge', target: { kind: 'text', text: 'Delete' } },
+        { kind: 'highlight', target: { kind: 'label', label: 'Email' } },
+      ],
+    });
+    const list = (steps[0] as unknown as { annotate: object[] }).annotate;
+    for (const a of list) {
+      expect(a).not.toHaveProperty('color');
+      expect(a).not.toHaveProperty('from');
+    }
+  });
+
+  test('the target and options form', () => {
+    const { steps, errors } = run(
+      shot(
+        '- badge: {target: {text: Delete}, color: "#0a0"}\n- arrow: {target: "#export", from: right, color: red}\n- highlight: {target: "#x"}',
+      ),
+    );
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({
+      annotate: [
+        { kind: 'badge', target: { kind: 'text', text: 'Delete' }, color: '#0a0' },
+        { kind: 'arrow', target: { kind: 'css', selector: '#export' }, from: 'right', color: 'red' },
+        { kind: 'highlight', target: { kind: 'css', selector: '#x' } },
+      ],
+    });
+  });
+
+  test.each(['left', 'right', 'top', 'bottom'])('an arrow accepts from: %s', (side) => {
+    const { steps, errors } = run(shot(`- arrow: {target: "#x", from: ${side}}`));
+    expect(errors).toEqual([]);
+    expect(steps[0]).toMatchObject({ annotate: [{ kind: 'arrow', from: side }] });
+  });
+
+  test.each(['"#a"', '{highlight: "#a"}', '5'])('annotate that is not a list (%s) says it must be a list', (v) => {
+    const m = msgs(`- screenshot: {name: a, target: "#t", annotate: ${v}}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/\(step 1\): .*`annotate` must be a list of annotations/);
+  });
+
+  test('an item that is not a mapping, or has no key, names its position and the kinds', () => {
+    for (const item of ['"#a"', '{}']) {
+      const m = msgs(shot(`- ${item}`));
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(/annotate\[1\]/);
+      expect(m[0]).toMatch(/highlight, arrow, badge/);
+    }
+  });
+
+  test('two keys or an unknown kind name the item and the kinds allowed', () => {
+    const two = msgs(shot('- highlight: "#a"\n  badge: "#b"'));
+    expect(two[0]).toMatch(/annotate\[1\] needs exactly one key.*highlight, arrow, badge/);
+    const unknown = msgs(shot('- highlight: "#a"\n- circle: "#b"'));
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0]).toMatch(/annotate\[2\] has unknown kind `circle` \(use highlight, arrow, badge\)/);
+  });
+
+  test('an invalid target names the item and the kind', () => {
+    for (const v of ['""', '{name: x}', '5', '{role: button, text: x}']) {
+      const m = msgs(shot(`- arrow: ${v}`));
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(/annotate\[1\] \(arrow\) target/);
+    }
+    expect(msgs(shot('- badge: {target: {name: x}}'))[0]).toMatch(/annotate\[1\] \(badge\) target/);
+  });
+
+  test('an unknown option names the annotation and what is allowed', () => {
+    const m = msgs(shot('- highlight: {target: "#a", width: 3}'));
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/annotate\[1\] \(highlight\) has unknown key `width` \(allowed: target, color\)/);
+  });
+
+  test.each(['""', '"  "', '5', '[red]'])('color %s is rejected', (v) => {
+    const m = msgs(shot(`- badge: {target: "#a", color: ${v}}`));
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/annotate\[1\] \(badge\) `color` must be a non-empty string/);
+  });
+
+  test('from is only for arrows, and only the four sides', () => {
+    for (const kind of ['highlight', 'badge']) {
+      const m = msgs(shot(`- ${kind}: {target: "#a", from: left}`));
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(new RegExp(`annotate\\[1\\] \\(${kind}\\) has unknown key \`from\``));
+    }
+    for (const v of ['up', '""', '5']) {
+      const m = msgs(shot(`- arrow: {target: "#a", from: ${v}}`));
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(/annotate\[1\] \(arrow\) `from` must be one of left, right, top, bottom/);
+    }
+  });
+
+  test('annotate needs a target', () => {
+    const m = msgs('- screenshot:\n    name: a\n    annotate:\n      - highlight: "#a"\n');
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/\(step 1\): .*`annotate` requires a `target`/);
+  });
+
+  test('the unknown-key message lists annotate', () => {
+    expect(msgs('- screenshot: {name: a, color: red}\n')[0]).toMatch(/allowed: .*maskColor, annotate/);
+  });
+});
+
 describe('press', () => {
   test.each([
     ['Enter', { key: 'Enter' }],

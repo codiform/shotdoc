@@ -20,6 +20,7 @@ const cssShot = (name: string, selector: string, padding: number): Extract<Step,
   include: [],
   hide: [],
   mask: [],
+  annotate: [],
   padding,
 });
 

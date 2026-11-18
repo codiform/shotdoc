@@ -97,7 +97,7 @@ All blocks in a document share one browser session: a later block continues on t
 | `fill` | `- fill: {target: <target>, value: "text"}` |
 | `press` | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
 | `wait` | `- wait: <condition>` (see below) |
-| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", padding: 16, alt: "..."}` |
+| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], padding: 16, alt: "..."}` |
 
 ### Targets
 
@@ -212,6 +212,33 @@ Both apply to that one screenshot only. The page is put back afterwards, so late
 
 Masking removes the content from the image, so it does not suit a screenshot meant to show that content. If an image is one colour throughout after masking (a mask covering everything captured), the build fails as for any blank image, and the message mentions the mask.
 
+### Annotating
+
+To point at something in a screenshot, give it an `annotate` list. Each item has one key, naming what to draw, and its value is the element to draw it on:
+
+```shotdoc
+- goto: /rows.html
+- screenshot:
+    name: toolbar
+    target: ".toolbar"
+    annotate:
+      - highlight: {role: button, name: Save}
+      - arrow: {target: "#export", from: right}
+      - badge: {target: {text: Delete}, color: "#0a0"}
+```
+
+- `highlight` draws a box around the element.
+- `arrow` draws an arrow beside the element, pointing at it. `from` is the side it sits on: `left` (the default), `right`, `top` or `bottom`.
+- `badge` draws a numbered circle on the element's top-left corner. Badges are numbered 1, 2, 3 in the order you list them, so write what each one means in the text next to the image ("1 is the delete button"). There is no text label option on purpose: a numbered badge and a sentence avoid text that does not fit and can be translated with the rest of the page.
+
+The value is a target in any of the usual forms, or a mapping with `target` and options. Every kind takes `color` (any CSS colour). The default is pink, and each annotation has a white outline so it shows on light and dark pages alike. An annotation's target must match exactly one element, and shotdoc waits for it to be visible, as for the screenshot's own target.
+
+`annotate` needs a `target` on the screenshot. The image grows to include every annotation: an arrow that points in from outside the target is not cropped away, and `padding` is added around the lot. A region cut off by the edge of the page is cut there.
+
+Annotations apply to that one screenshot only and are removed afterwards, as `hide` and `mask` are. They do not change the page's layout. A `mask` is painted over them, so a masked element hides any annotation on it.
+
+Badge numbers are drawn with the browser's `sans-serif` font, so they can differ between machines that have different fonts. An annotation on a fixed or sticky element can end up in the wrong place if the page has to scroll to fit the region.
+
 ### Waiting
 
 Clicking returns before the page has necessarily updated. When a screenshot should show the result of an action, wait for something that proves the page is ready:
@@ -239,4 +266,4 @@ Every wait gives up after 10 seconds and the build fails with the condition name
 - CSS animations and transitions are settled before each screenshot, but motion driven by script (an animation loop, a timer that changes the page) is not frozen, so a page with such motion can give different images on different builds.
 - Pixel-identical output across different machines is not guaranteed.
 - Only an image that is one colour throughout is rejected as blank. A page that is partly blank, such as an empty panel inside a populated page, is not detected.
-- No annotations, named login states, JavaScript blocks, HTML output, or caching yet.
+- Named login states, JavaScript blocks, HTML output, or caching yet.

@@ -26,3 +26,10 @@ test('the README documents the screenshot options for hiding and masking', () =>
   for (const key of ['hide', 'mask', 'maskColor']) expect(readme).toContain(`\`${key}\``);
   expect(readme).toContain('### Hiding and masking');
 });
+
+test('the README documents annotations: the option, each kind and the options', () => {
+  expect(readme).toContain('### Annotating');
+  for (const word of ['`annotate`', '`highlight`', '`arrow`', '`badge`', '`from`', '`color`']) {
+    expect(readme).toContain(word);
+  }
+});
