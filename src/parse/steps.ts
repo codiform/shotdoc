@@ -284,7 +284,6 @@ export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; err
   const steps: Step[] = [];
   const errors: ShotdocError[] = [];
   doc.forEach((item: unknown, i) => {
-
     const n = i + 1;
     if (!isMap(item) || Object.keys(item).length !== 1) {
       errors.push(
@@ -309,7 +308,6 @@ export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; err
       }
       errors.push(new ShotdocError(e.message, loc({ step: n })));
     }
-
   });
   return { steps, errors };
 }
