@@ -7,7 +7,6 @@ import {
   type AnnotationKind,
   ARROW_SIDES,
   type ArrowSide,
-
   type Step,
   type Target,
   type WaitCondition,
@@ -23,8 +22,7 @@ const SCREENSHOT_KEYS = ['name', 'target', 'include', 'hide', 'mask', 'maskColor
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
 const isMap = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-class StepError extends Error {
-}
+class StepError extends Error {}
 
 const bad = (msg: string): never => {
   throw new StepError(msg);
@@ -65,7 +63,7 @@ function nonNegativeNumber(v: unknown, what: string): number {
 export function parseTarget(v: unknown, what = 'target'): Target {
   if (typeof v === 'string') {
     if (!v.trim()) bad(`${what} must not be empty`);
-    return {kind: 'css', selector: v};
+    return { kind: 'css', selector: v };
   }
 
   if (!isMap(v)) return bad(`${what} must be a selector string or a mapping with role, text, or label`);
@@ -89,13 +87,13 @@ export function parseTarget(v: unknown, what = 'target'): Target {
 
   if (key === 'role') {
     return v.name === undefined
-      ? {kind: 'role', role: str(v.role, 'role')}
-      : {kind: 'role', role: str(v.role, 'role'), name: str(v.name, 'name')};
+      ? { kind: 'role', role: str(v.role, 'role') }
+      : { kind: 'role', role: str(v.role, 'role'), name: str(v.name, 'name') };
   }
 
-  if (key === 'text') return {kind: 'text', text: str(v.text, 'text')};
+  if (key === 'text') return { kind: 'text', text: str(v.text, 'text') };
 
-  return {kind: 'label', label: str(v.label, 'label')};
+  return { kind: 'label', label: str(v.label, 'label') };
 }
 
 /** Modifiers joined by `+`, then a final key that is a single character or a name. */
@@ -118,17 +116,17 @@ function parseKey(v: unknown): string {
 }
 
 function parsePress(v: unknown): { key: string; target?: Target } {
-  if (!isMap(v)) return {key: parseKey(v)};
+  if (!isMap(v)) return { key: parseKey(v) };
   rejectUnknownKeys(v, ['key', 'target'], 'press');
   if (v.key === undefined) bad('press requires a `key`');
   const key = parseKey(v.key);
-  return v.target === undefined ? {key} : {key, target: parseTarget(v.target)};
+  return v.target === undefined ? { key } : { key, target: parseTarget(v.target) };
 }
 
 function parseWait(v: unknown): WaitCondition {
   if (typeof v === 'number') {
     if (!Number.isFinite(v) || v < 0) bad('wait milliseconds must be a non-negative number');
-    return {kind: 'ms', ms: v};
+    return { kind: 'ms', ms: v };
   }
   if (!isMap(v)) return bad('wait needs one condition: visible, hidden, text, network, or a number of milliseconds');
   const keys = Object.keys(v);
@@ -138,13 +136,13 @@ function parseWait(v: unknown): WaitCondition {
   switch (key) {
     case 'visible':
     case 'hidden':
-      return {kind: key, target: parseTarget(val, `\`${key}\` target`)};
+      return { kind: key, target: parseTarget(val, `\`${key}\` target`) };
     case 'text':
       if (typeof val !== 'string' || !val) bad('wait `text` must be a non-empty string');
-      return {kind: 'text', text: val as string};
+      return { kind: 'text', text: val as string };
     case 'network':
       if (val !== 'idle') bad('wait `network` only supports the value `idle`');
-      return {kind: 'network'};
+      return { kind: 'network' };
     default:
       return bad(`unsupported wait condition \`${key}\` (use visible, hidden, text, network, or milliseconds)`);
   }
@@ -169,11 +167,11 @@ function parseAnnotation(v: unknown, i: number): Annotation {
   const value = v[kind];
 
   if (!isMap(value) || value.target === undefined) {
-    return {kind: kind as AnnotationKind, target: parseTarget(value, `${what} target`)};
+    return { kind: kind as AnnotationKind, target: parseTarget(value, `${what} target`) };
   }
 
   rejectUnknownKeys(value, kind === 'arrow' ? ['target', 'color', 'from'] : ['target', 'color'], what);
-  const out: Annotation = {kind: kind as AnnotationKind, target: parseTarget(value.target, `${what} target`)};
+  const out: Annotation = { kind: kind as AnnotationKind, target: parseTarget(value.target, `${what} target`) };
   if (value.color !== undefined) out.color = nonEmptyString(value.color, `${what} \`color\``);
   if (value.from !== undefined) {
     if (!(ARROW_SIDES as readonly unknown[]).includes(value.from)) {
@@ -198,7 +196,7 @@ function parseScreenshot(v: unknown): ScreenshotFields {
   if (!isMap(v)) return bad('screenshot needs a mapping with at least `name`');
   rejectUnknownKeys(v, SCREENSHOT_KEYS, 'screenshot');
 
-  const out: ScreenshotFields = {name: parseScreenshotName(v), include: [], hide: [], mask: [], annotate: []};
+  const out: ScreenshotFields = { name: parseScreenshotName(v), include: [], hide: [], mask: [], annotate: [] };
   if (v.target !== undefined) out.target = parseTarget(v.target);
 
   if (v.include !== undefined) {
@@ -229,17 +227,17 @@ function parseGoto(v: unknown, n: number, ctx: StepContext): Step {
       `goto uses the relative URL \`${v}\` but no base URL is configured: set \`baseUrl\` in shotdoc.config.yaml or use an absolute URL`,
     );
   }
-  return {n, kind: 'goto', url: v};
+  return { n, kind: 'goto', url: v };
 }
 
 /** `click`, `dblclick` and `hover` all take just a target. */
 const parseTargetStep =
   (kind: 'click' | 'dblclick' | 'hover'): StepParser =>
-    (v, n) => ({n, kind, target: parseTarget(v)});
+  (v, n) => ({ n, kind, target: parseTarget(v) });
 
 function parseUnhover(v: unknown, n: number): Step {
   if (v !== null && v !== undefined) bad('unhover takes no value: write `- unhover:` with nothing after the colon');
-  return {n, kind: 'unhover'};
+  return { n, kind: 'unhover' };
 }
 
 function parseFill(v: unknown, n: number): Step {
@@ -248,7 +246,7 @@ function parseFill(v: unknown, n: number): Step {
   if (v.target === undefined) bad('fill requires a `target`');
   if (v.value === undefined) bad('fill requires a `value`');
   if (typeof v.value !== 'string' && typeof v.value !== 'number') bad('fill `value` must be text');
-  return {n, kind: 'fill', target: parseTarget(v.target), value: String(v.value)};
+  return { n, kind: 'fill', target: parseTarget(v.target), value: String(v.value) };
 }
 
 /** One parser per step name, in the order the names are listed to authors. */
@@ -259,21 +257,21 @@ const PARSERS: Record<string, StepParser> = {
   hover: parseTargetStep('hover'),
   unhover: parseUnhover,
   fill: parseFill,
-  press: (v, n) => ({n, kind: 'press', ...parsePress(v)}),
-  wait: (v, n) => ({n, kind: 'wait', condition: parseWait(v)}),
-  screenshot: (v, n) => ({n, kind: 'screenshot', ...parseScreenshot(v)}),
+  press: (v, n) => ({ n, kind: 'press', ...parsePress(v) }),
+  wait: (v, n) => ({ n, kind: 'wait', condition: parseWait(v) }),
+  screenshot: (v, n) => ({ n, kind: 'screenshot', ...parseScreenshot(v) }),
 };
 const STEP_NAMES = Object.keys(PARSERS);
 
 /** Parses and validates one block body. Reports every problem in the block. */
 export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; errors: ShotdocError[] } {
-  const loc = (extra: ErrorLocation = {}): ErrorLocation => ({file: ctx.file, blockLine: ctx.blockLine, ...extra});
+  const loc = (extra: ErrorLocation = {}): ErrorLocation => ({ file: ctx.file, blockLine: ctx.blockLine, ...extra });
   let doc: unknown;
   try {
     doc = parse(body);
   } catch (e) {
     const first = (e as Error).message.split('\n')[0];
-    return {steps: [], errors: [new ShotdocError(`invalid YAML: ${first}`, loc())]};
+    return { steps: [], errors: [new ShotdocError(`invalid YAML: ${first}`, loc())] };
   }
   if (!Array.isArray(doc)) {
     return {
@@ -286,29 +284,34 @@ export function parseSteps(body: string, ctx: StepContext): { steps: Step[]; err
   const steps: Step[] = [];
   const errors: ShotdocError[] = [];
   doc.forEach((item: unknown, i) => {
+
     const n = i + 1;
     if (!isMap(item) || Object.keys(item).length !== 1) {
       errors.push(
-        new ShotdocError('each step must be a mapping with exactly one key, such as `- click: ...`', loc({step: n})),
+        new ShotdocError('each step must be a mapping with exactly one key, such as `- click: ...`', loc({ step: n })),
       );
       return;
     }
+
     const name = Object.keys(item)[0] as string;
     if (!STEP_NAMES.includes(name)) {
       errors.push(
-        new ShotdocError(`unsupported step \`${name}\` (supported: ${STEP_NAMES.join(', ')})`, loc({step: n})),
+        new ShotdocError(`unsupported step \`${name}\` (supported: ${STEP_NAMES.join(', ')})`, loc({ step: n })),
       );
       return;
     }
+
     try {
       steps.push(PARSERS[name]!(item[name], n, ctx));
     } catch (e) {
-      if (!(e instanceof StepError)) throw e;
-      errors.push(new ShotdocError(e.message, loc({step: n})));
+      if (!(e instanceof StepError)) {
+        throw e;
+      }
+      errors.push(new ShotdocError(e.message, loc({ step: n })));
     }
+
   });
-  return {steps, errors};
+  return { steps, errors };
 }
 
-
-export {describeTarget} from './types.js';
+export { describeTarget } from './types.js';

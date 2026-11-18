@@ -1,0 +1,32 @@
+# Exploring a table in Datasette
+
+Datasette publishes a table as a page you can filter, sort and facet. The `facetable` table in the public demo database is a small one to start with:
+
+![The facetable table with its filters and its rows](images/datasette/table.png)
+
+The footer reports how long the queries took, which changes every time the page loads, so the footer is covered in the picture above.
+
+## Column actions
+
+Each column has a gear button that opens a menu of things you can do with that column. Open the menu for the `state` column:
+
+![The menu for the state column](images/datasette/column-menu.png)
+
+*Facet by this* counts how many rows have each value in the column. Choose it:
+
+![The state facet, showing how many rows each state has](images/datasette/facet.png)
+
+## Filtering and sorting
+
+The form above the table filters and sorts the rows. It has four controls, numbered here in the order you use them:
+
+![The filter form with four numbered controls](images/datasette/filter-form.png)
+
+1. Choose the column to filter on.
+2. Choose how to compare it, such as `=` or `contains`.
+3. Type the value to compare against.
+4. Apply the filter.
+
+To list the rows from the last to the first, tick *descending* and apply:
+
+![The table with its rows in descending order](images/datasette/descending.png)

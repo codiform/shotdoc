@@ -159,8 +159,9 @@ export async function drawAnnotations(
 ): Promise<Drawn> {
   const bounds: Rect[] = [];
   try {
-    for (const { locator, plan } of items)
+    for (const { locator, plan } of items) {
       bounds.push(await locator.evaluate(drawInPage, plan));
+    }
   } catch (e) {
     await removeOverlay(page);
     throw e;

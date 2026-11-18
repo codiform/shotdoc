@@ -18,6 +18,8 @@ To rebuild it, run this from the project root. The build finds the example's con
 shotdoc build examples/todomvc/input/todo-mvc.md
 ```
 
+[`examples/datasette/`](examples/datasette/) documents a table in Datasette's public demo and shows the annotation and masking features: an arrow beside an open menu, numbered badges on a form, and the footer's changing query time masked. Rebuild it the same way, with `shotdoc build examples/datasette/input/datasette.md`.
+
 ## Prerequisites
 
 - Node.js 20 or later
