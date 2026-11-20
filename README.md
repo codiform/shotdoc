@@ -20,6 +20,8 @@ shotdoc build examples/todomvc/input/todo-mvc.md
 
 [`examples/datasette/`](examples/datasette/) documents a table in Datasette's public demo and shows the annotation and masking features: an arrow beside an open menu, numbered badges on a form, and the footer's changing query time masked. Rebuild it the same way, with `shotdoc build examples/datasette/input/datasette.md`.
 
+To rebuild every example at once, run `npm run build:examples` (it compiles first, then builds each `examples/*/input/*.md`). It carries on past a failure and exits non-zero if any example failed, and since the examples drive live third-party sites, a changed image or a failure there can mean the site has drifted.
+
 ## Prerequisites
 
 - Node.js 20 or later
