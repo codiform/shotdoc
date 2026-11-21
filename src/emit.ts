@@ -1,3 +1,4 @@
+import { stripShotdocKey } from './parse/frontmatter.js';
 import type { Block } from './parse/types.js';
 import type { Shot } from './run/steps.js';
 
@@ -5,7 +6,8 @@ const escapeAlt = (s: string) => s.replace(/[\\[\]]/g, '\\$&');
 
 /**
  * Builds the output document by replacing each block's line range with image references.
- * Everything outside the blocks is copied byte for byte, including line endings.
+ * Everything outside the blocks is copied byte for byte, including line endings, except the
+ * `shotdoc` key of the front matter, which is build configuration and is removed.
  * `imageRef` maps a screenshot name to the path written in the document.
  */
 export function buildDocument(
@@ -30,5 +32,5 @@ export function buildDocument(
     }
     next = block.endLine;
   }
-  return out + lines.slice(next).join('');
+  return stripShotdocKey(out + lines.slice(next).join(''));
 }

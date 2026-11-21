@@ -53,3 +53,20 @@ test('a document without blocks is returned unchanged', () => {
   const src = '# Just text\r\n\r\nno blocks';
   expect(make(src, {})).toBe(src);
 });
+
+test('the shotdoc front matter key is removed and other keys are kept', () => {
+  const src =
+    '---\ntitle:  Guide\nshotdoc: {defaults: {hide: [a]}}\n---\n\n```shotdoc\n- goto: /\n- screenshot: {name: a}\n```\n\n```shotdoc\n- goto: /\n- screenshot: {name: b}\n```\n';
+  expect(make(src, { 6: [shot('a')], 11: [shot('b')] })).toBe(
+    '---\ntitle:  Guide\n---\n\n![a](images/doc/a.png)\n\n![b](images/doc/b.png)\n',
+  );
+});
+
+test('front matter holding only shotdoc leaves the document starting with its content', () => {
+  const src = '---\nshotdoc: {defaults: {hide: [a]}}\n---\n\n# T\n';
+  expect(make(src, {})).toBe('# T\n');
+});
+
+test('a document without front matter is built as before', () => {
+  expect(make('# T\n\ntext\n', {})).toBe('# T\n\ntext\n');
+});

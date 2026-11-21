@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { readFrontMatter } from '../../src/parse/frontmatter.js';
+import { readFrontMatter, stripShotdocKey } from '../../src/parse/frontmatter.js';
 
 const read = (src: string) => readFrontMatter(src, 'a.md');
 const msgs = (src: string) => read(src).errors.map((e) => e.message);
@@ -127,5 +127,51 @@ describe('defaults', () => {
 
   test('every problem is reported together', () => {
     expect(msgs(front('shotdoc: {defaults: {hide: x, mask: y, maskColor: ""}}'))).toHaveLength(3);
+  });
+});
+
+describe('stripping the shotdoc key', () => {
+  const strip = stripShotdocKey;
+  const odd = 'title:   \'Guide\'   # note\ntags: [a,   b]\nauthor: "Me"';
+
+  test('when shotdoc is the only key the whole block and one blank line go', () => {
+    expect(strip('---\nshotdoc:\n  defaults:\n    hide: [{text: Demo}]\n---\n\n# Title\n')).toBe('# Title\n');
+    expect(strip('---\nshotdoc: {defaults: {hide: [a]}}\n---\n# Title\n')).toBe('# Title\n');
+  });
+
+  test('other keys stay byte for byte, whatever their layout', () => {
+    const block = 'shotdoc:\n  defaults:\n    hide: [a]\n';
+    const lines = odd.split('\n');
+    const first = lines[0];
+    const rest = lines.slice(1).join('\n');
+    expect(strip(`---\n${block}${odd}\n---\n\n# T\n`)).toBe(`---\n${odd}\n---\n\n# T\n`);
+    expect(strip(`---\n${first}\n${block}${rest}\n---\n# T\n`)).toBe(`---\n${odd}\n---\n# T\n`);
+    expect(strip(`---\n${odd}\n${block.trimEnd()}\n---\n# T\n`)).toBe(`---\n${odd}\n---\n# T\n`);
+  });
+
+  test('a one-line flow form with a trailing comment goes with its comment', () => {
+    expect(strip('---\ntitle: A\nshotdoc: {defaults: {hide: [a]}} # build\nlayout: x\n---\ntext\n')).toBe(
+      '---\ntitle: A\nlayout: x\n---\ntext\n',
+    );
+    expect(strip('---\ntitle: A\nshotdoc: {defaults: {}} # build\n---\ntext\n')).toBe('---\ntitle: A\n---\ntext\n');
+  });
+
+  test('text without a shotdoc key or front matter is unchanged', () => {
+    for (const text of ['# T\n', '---\ntitle: A\n---\n# T\n', '---\n- a\n- b\n---\n# T\n', '---\nx: [\n---\n# T\n']) {
+      expect(strip(text)).toBe(text);
+    }
+  });
+
+  test('CRLF line endings and a BOM are handled', () => {
+    expect(strip('---\r\ntitle: A\r\nshotdoc:\r\n  defaults: {}\r\n---\r\ntext\r\n')).toBe(
+      '---\r\ntitle: A\r\n---\r\ntext\r\n',
+    );
+    expect(strip('---\r\nshotdoc: {}\r\n---\r\n\r\ntext\r\n')).toBe('text\r\n');
+    expect(strip('﻿---\ntitle: A\nshotdoc: {}\n---\ntext\n')).toBe('﻿---\ntitle: A\n---\ntext\n');
+    expect(strip('﻿---\nshotdoc: {}\n---\ntext\n')).toBe('﻿text\n');
+  });
+
+  test('a closing `...` works', () => {
+    expect(strip('---\ntitle: A\nshotdoc: {}\n...\ntext\n')).toBe('---\ntitle: A\n...\ntext\n');
   });
 });

@@ -240,7 +240,7 @@ The front matter is the YAML block at the very start of the file, between two li
 
 A default target does not have to match anything. If it matches nothing on the page, or only matches elements outside the captured image, the screenshot is taken as usual, so a default for a banner that is on some pages and not others is fine. The price is that defaults are never waited for: one applies to whatever is on the page when the screenshot is taken, and an element that has not appeared yet is missed. Put a target you need waited for, and checked, in the screenshot's own `hide` or `mask`.
 
-The front matter stays in the built document exactly as written. Defaults for a whole project in `shotdoc.config.yaml`, and ones that apply from a point in the document onwards, are not available yet.
+The built document leaves out the `shotdoc` key, since it is build configuration and not something readers need (if it was the only key, the whole front matter goes). Any other front matter keys are kept exactly as written. Defaults for a whole project in `shotdoc.config.yaml`, and ones that apply from a point in the document onwards, are not available yet.
 
 ### Annotating
 

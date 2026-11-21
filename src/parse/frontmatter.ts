@@ -1,4 +1,4 @@
-import { parse } from 'yaml';
+import { isScalar, isMap as isYamlMap, parse, parseDocument } from 'yaml';
 import { ShotdocError } from '../errors.js';
 import { asList, isMap, nonEmptyString, parseTargets, rejectUnknownKeys, StepError } from './steps.js';
 import { type Defaults, NO_DEFAULTS } from './types.js';
@@ -69,4 +69,41 @@ export function readFrontMatter(source: string, file: string): { defaults: Defau
     }
   });
   return { defaults, errors };
+}
+
+/**
+ * Removes the `shotdoc` key from the document's front matter, for the built output. The key is cut
+ * out by its source range, never re-serialised, so every other key stays exactly as written. When
+ * `shotdoc` is the only key the whole block goes, with one blank line after it. Text without front
+ * matter, without a `shotdoc` key, or whose front matter is not a mapping comes back unchanged.
+ */
+export function stripShotdocKey(text: string): string {
+  const found = FRONT_MATTER.exec(text);
+  if (!found) return text;
+  const body = found[1] ?? '';
+  const bodyStart = text.indexOf('\n') + 1;
+  const doc = parseDocument(body);
+  if (doc.errors.length || !isYamlMap(doc.contents)) return text;
+  const items = doc.contents.items;
+  const pair = items.find((p) => isScalar(p.key) && p.key.value === 'shotdoc');
+  if (!pair || !isScalar(pair.key) || !pair.key.range) return text;
+
+  if (items.length === 1) {
+    const rest = text.slice(found[0].length);
+    const blank = /^[ \t]*\r?\n/.exec(rest);
+    return text.slice(0, text.startsWith('\uFEFF') ? 1 : 0) + rest.slice(blank ? blank[0].length : 0);
+  }
+
+  const valueRange = (pair.value as { range?: [number, number, number] } | null)?.range;
+  let end = valueRange ? valueRange[1] : pair.key.range[1];
+  if (body[end - 1] !== '\n') {
+    const eol = body.indexOf('\n', end);
+    end = eol === -1 ? body.length : eol + 1;
+  }
+  let start = pair.key.range[0];
+  start = body.lastIndexOf('\n', start - 1) + 1;
+  const cut = body.slice(0, start) + body.slice(end);
+  // The newline before the closing line is outside the body: when the cut reaches the body's end it goes too.
+  const tail = text.slice(bodyStart + body.length);
+  return text.slice(0, bodyStart) + cut + (end === body.length ? tail.replace(/^\r?\n/, '') : tail);
 }
