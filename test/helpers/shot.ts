@@ -9,14 +9,14 @@ import { md, testConfig } from './run.js';
 
 export type Image = PNG;
 
-/** Runs steps (one block) and returns the decoded PNGs by screenshot name. */
-export async function shoot(
+/** Runs a whole Markdown document and returns the decoded PNGs by screenshot name. */
+export async function shootDocument(
   baseUrl: string,
-  steps: string | string[],
+  source: string,
   over: Partial<Config> = {},
 ): Promise<Record<string, Image>> {
   const config = testConfig(baseUrl, over);
-  const blocks = parseDocument(md(...[steps].flat()), 'doc.md', { baseUrl });
+  const blocks = parseDocument(source, 'doc.md', { baseUrl });
   const stageDir = mkdtempSync(join(tmpdir(), 'shotdoc-shot-'));
   try {
     const result = await runDocument(blocks, { config, file: 'doc.md', stageDir });
@@ -29,6 +29,10 @@ export async function shoot(
     rmSync(stageDir, { recursive: true, force: true });
   }
 }
+
+/** Runs steps (one block) and returns the decoded PNGs by screenshot name. */
+export const shoot = (baseUrl: string, steps: string | string[], over: Partial<Config> = {}) =>
+  shootDocument(baseUrl, md(...[steps].flat()), over);
 
 export function pixel(img: Image, x: number, y: number): [number, number, number] {
   const i = (img.width * y + x) * 4;

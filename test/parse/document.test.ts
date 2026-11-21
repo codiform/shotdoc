@@ -42,3 +42,33 @@ test('validation does not touch a browser', async () => {
   expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
 });
+
+const FRONT = '---\ntitle: Guide\nshotdoc:\n  defaults:\n    hide: [{text: Demo}]\n    maskColor: "#333"\n---\n\n';
+const BLOCK = '```shotdoc\n- screenshot: {name: a}\n```\n';
+
+test('front matter defaults reach every screenshot in every block', () => {
+  const blocks = parseDocument(`${FRONT}${BLOCK}\n${BLOCK.replace('name: a', 'name: b')}`, 'a.md', base);
+  const shots = blocks.flatMap((b) => b.steps);
+  expect(shots).toHaveLength(2);
+  for (const s of shots) {
+    expect(s).toMatchObject({ defaults: { hide: [{ kind: 'text', text: 'Demo' }], maskColor: '#333' } });
+  }
+});
+
+test('block lines are counted from the top of the file, front matter included', () => {
+  const blocks = parseDocument(`${FRONT}${BLOCK}`, 'a.md', base);
+  expect(blocks[0]?.line).toBe(9);
+  expect(errorsOf(`${FRONT}\`\`\`shotdoc\n- swipe: x\n\`\`\`\n`)[0]).toMatch(/^a\.md:9 \(step 1\)/);
+});
+
+test('a document without front matter parses as before', () => {
+  const blocks = parseDocument(BLOCK, 'a.md', base);
+  expect(blocks[0]?.steps[0]).toMatchObject({ defaults: { hide: [], mask: [] } });
+});
+
+test('a front matter error stops the build, and is reported with block errors', () => {
+  const m = errorsOf(`---\nshotdoc: {defalts: {}}\n---\n\n\`\`\`shotdoc\n- swipe: x\n\`\`\`\n`);
+  expect(m).toHaveLength(2);
+  expect(m[0]).toMatch(/^a\.md: the front matter `shotdoc` has unknown key `defalts`/);
+  expect(m[1]).toMatch(/^a\.md:5 \(step 1\).*swipe/);
+});

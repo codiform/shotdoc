@@ -24,6 +24,15 @@ export interface Annotation {
   from?: ArrowSide;
 }
 
+/** Effects a document declares once for every screenshot in it (its front matter's `shotdoc.defaults`). */
+export interface Defaults {
+  hide: Target[];
+  mask: Target[];
+  maskColor?: string;
+}
+
+export const NO_DEFAULTS: Defaults = { hide: [], mask: [] };
+
 interface Base {
   /** 1-based position within the block. */
   n: number;
@@ -50,6 +59,8 @@ export type Step =
       maskColor?: string;
       /** Drawn over the page for this capture only, in order. */
       annotate: Annotation[];
+      /** The document's defaults that apply to this screenshot: empty when it opted out with `defaults: false`. */
+      defaults: Defaults;
       padding?: number;
       alt?: string;
     });

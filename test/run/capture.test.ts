@@ -21,6 +21,7 @@ const cssShot = (name: string, selector: string, padding: number): Extract<Step,
   hide: [],
   mask: [],
   annotate: [],
+  defaults: { hide: [], mask: [] },
   padding,
 });
 

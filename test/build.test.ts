@@ -116,3 +116,21 @@ test('a blank screenshot fails the build: no built document and no images', asyn
   expect(existsSync(join(cwd, 'build', 'guide.md'))).toBe(false);
   expect(tree(join(cwd, 'build', 'images'))).toEqual([]);
 });
+
+const FRONT = '---\ntitle: Guide\nshotdoc:\n  defaults:\n    hide: ["#banner"]\n---\n';
+const WITH_DEFAULTS = `${FRONT}\n# Guide\n\n\`\`\`shotdoc\n- goto: /hidemask.html\n- screenshot: {name: shot}\n\`\`\`\n\nEnd.\n`;
+
+test('front matter defaults are applied and the front matter is kept byte for byte', async () => {
+  write('guide.md', WITH_DEFAULTS);
+  const r = await build('guide.md', cwd);
+  expect(readFileSync(r.builtPath, 'utf8')).toBe(`${FRONT}\n# Guide\n\n![shot](images/guide/shot.png)\n\nEnd.\n`);
+  const png = PNG.sync.read(readFileSync(join(cwd, 'build', 'images', 'guide', 'shot.png')));
+  const i = (png.width * 40 + 2000) * 4; // device scale 2: this is inside the 40px-high banner
+  expect([png.data[i], png.data[i + 1], png.data[i + 2]]).toEqual([245, 245, 245]);
+});
+
+test('a front matter error fails the build before any output is written', async () => {
+  write('guide.md', WITH_DEFAULTS.replace('hide:', 'hid:'));
+  await expect(build('guide.md', cwd)).rejects.toThrow(/`shotdoc.defaults` has unknown key `hid`/);
+  expect(existsSync(join(cwd, 'build'))).toBe(false);
+});

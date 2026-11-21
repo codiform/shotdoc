@@ -99,7 +99,7 @@ All blocks in a document share one browser session: a later block continues on t
 | `fill` | `- fill: {target: <target>, value: "text"}` |
 | `press` | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
 | `wait` | `- wait: <condition>` (see below) |
-| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], padding: 16, alt: "..."}` |
+| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], defaults: false, padding: 16, alt: "..."}` |
 
 ### Targets
 
@@ -210,9 +210,35 @@ Some things should not be in a screenshot: an account name, an avatar, a date th
 
 Targets are the same forms as everywhere else, with one difference: a `hide` or `mask` target may match several elements, and all of them are hidden or masked. That makes it easy to mask a date in every row. It must match at least one element. Shotdoc waits for one to appear, and the step fails if none does, so a selector that stops matching after a page change does not quietly leave the data in the image.
 
-Both apply to that one screenshot only. The page is put back afterwards, so later screenshots show the elements as normal. To leave an element out of several screenshots, list it in each.
+Both apply to that one screenshot only. The page is put back afterwards, so later screenshots show the elements as normal. To leave the same element out of every screenshot in a document, declare it once as a [default](#defaults-for-every-screenshot).
 
 Masking removes the content from the image, so it does not suit a screenshot meant to show that content. If an image is one colour throughout after masking (a mask covering everything captured), the build fails as for any blank image, and the message mentions the mask.
+
+### Defaults for every screenshot
+
+When the same element should be hidden or masked in every screenshot of a document, declare it once in the document's front matter, under `shotdoc.defaults`:
+
+```yaml
+---
+title: Using the app
+shotdoc:
+  defaults:
+    hide: [{text: This is just a demo}]
+    mask: ["#account-name"]
+    maskColor: "#999"
+---
+```
+
+The front matter is the YAML block at the very start of the file, between two lines of `---`. Shotdoc reads only the `shotdoc` key; anything else in it, such as a `title` for your site generator, is ignored.
+
+- `hide`, `mask` and `maskColor` take the same values as on a screenshot and apply to every screenshot in the document.
+- A screenshot's own `hide` and `mask` are added to the defaults, not instead of them. A screenshot's own `maskColor` wins over the default one.
+- A screenshot that should show everything sets `defaults: false`. That drops all the defaults for that screenshot, and its own `hide` and `mask` still apply.
+- `annotate` is not a default: annotations are set on each screenshot.
+
+A default target does not have to match anything. If it matches nothing on the page, or only matches elements outside the captured image, the screenshot is taken as usual, so a default for a banner that is on some pages and not others is fine. The price is that defaults are never waited for: one applies to whatever is on the page when the screenshot is taken, and an element that has not appeared yet is missed. Put a target you need waited for, and checked, in the screenshot's own `hide` or `mask`.
+
+The front matter stays in the built document exactly as written. Defaults for a whole project in `shotdoc.config.yaml`, and ones that apply from a point in the document onwards, are not available yet.
 
 ### Annotating
 

@@ -7,6 +7,8 @@ import {
   type AnnotationKind,
   ARROW_SIDES,
   type ArrowSide,
+  type Defaults,
+  NO_DEFAULTS,
   type Step,
   type Target,
   type WaitCondition,
@@ -16,35 +18,50 @@ export interface StepContext {
   file: string;
   blockLine: number;
   baseUrl?: string;
+  /** The document's front-matter defaults, given to every screenshot that has not opted out. */
+  defaults?: Defaults;
 }
 
-const SCREENSHOT_KEYS = ['name', 'target', 'include', 'hide', 'mask', 'maskColor', 'annotate', 'padding', 'alt'];
+const SCREENSHOT_KEYS = [
+  'name',
+  'target',
+  'include',
+  'hide',
+  'mask',
+  'maskColor',
+  'annotate',
+  'defaults',
+  'padding',
+  'alt',
+];
 const NAME_RE = /^[A-Za-z0-9_-]+$/;
-const isMap = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isMap = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
 
-class StepError extends Error {}
+export class StepError extends Error {}
 
 const bad = (msg: string): never => {
   throw new StepError(msg);
 };
 
 /** Rejects any key of `v` that is not in `allowed`, naming it and listing what is allowed. */
-function rejectUnknownKeys(v: Record<string, unknown>, allowed: readonly string[], what: string): void {
+export function rejectUnknownKeys(v: Record<string, unknown>, allowed: readonly string[], what: string): void {
   for (const k of Object.keys(v)) {
     if (!allowed.includes(k)) bad(`${what} has unknown key \`${k}\` (allowed: ${allowed.join(', ')})`);
   }
 }
 
 /** `what` must be a list; `noun` completes the message ("a list of targets"). */
-function asList(v: unknown, what: string, noun: string): unknown[] {
+export function asList(v: unknown, what: string, noun: string): unknown[] {
   if (!Array.isArray(v)) bad(`${what} must be a list of ${noun}`);
   return v as unknown[];
 }
 
 /** Parses a list of targets, naming a bad item as `key[n]`. */
-const parseTargets = (list: unknown[], key: string): Target[] => list.map((t, i) => parseTarget(t, `${key}[${i + 1}]`));
+export const parseTargets = (list: unknown[], key: string): Target[] =>
+  list.map((t, i) => parseTarget(t, `${key}[${i + 1}]`));
 
-function nonEmptyString(v: unknown, what: string): string {
+export function nonEmptyString(v: unknown, what: string): string {
   if (typeof v !== 'string' || !v.trim()) bad(`${what} must be a non-empty string`);
   return v as string;
 }
@@ -192,11 +209,18 @@ function parseScreenshotName(v: Record<string, unknown>): string {
   return v.name as string;
 }
 
-function parseScreenshot(v: unknown): ScreenshotFields {
+function parseScreenshot(v: unknown, ctx: StepContext): ScreenshotFields {
   if (!isMap(v)) return bad('screenshot needs a mapping with at least `name`');
   rejectUnknownKeys(v, SCREENSHOT_KEYS, 'screenshot');
 
-  const out: ScreenshotFields = { name: parseScreenshotName(v), include: [], hide: [], mask: [], annotate: [] };
+  const out: ScreenshotFields = {
+    name: parseScreenshotName(v),
+    include: [],
+    hide: [],
+    mask: [],
+    annotate: [],
+    defaults: ctx.defaults ?? NO_DEFAULTS,
+  };
   if (v.target !== undefined) out.target = parseTarget(v.target);
 
   if (v.include !== undefined) {
@@ -212,6 +236,10 @@ function parseScreenshot(v: unknown): ScreenshotFields {
     const list = asList(v.annotate, 'screenshot `annotate`', 'annotations');
     if (out.target === undefined) bad('screenshot `annotate` requires a `target`');
     out.annotate = list.map((a, i) => parseAnnotation(a, i + 1));
+  }
+  if (v.defaults !== undefined) {
+    if (typeof v.defaults !== 'boolean') bad('screenshot `defaults` must be true or false');
+    if (v.defaults === false) out.defaults = NO_DEFAULTS;
   }
   if (v.padding !== undefined) out.padding = nonNegativeNumber(v.padding, 'screenshot `padding`');
   if (v.alt !== undefined) out.alt = plainString(v.alt, 'screenshot `alt`');
@@ -259,7 +287,7 @@ const PARSERS: Record<string, StepParser> = {
   fill: parseFill,
   press: (v, n) => ({ n, kind: 'press', ...parsePress(v) }),
   wait: (v, n) => ({ n, kind: 'wait', condition: parseWait(v) }),
-  screenshot: (v, n) => ({ n, kind: 'screenshot', ...parseScreenshot(v) }),
+  screenshot: (v, n, ctx) => ({ n, kind: 'screenshot', ...parseScreenshot(v, ctx) }),
 };
 const STEP_NAMES = Object.keys(PARSERS);
 

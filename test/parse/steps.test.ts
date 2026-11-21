@@ -399,3 +399,36 @@ describe('unhover', () => {
     expect(msgs('- swipe: a\n')[0]).toMatch(/supported: .*hover, unhover, fill/);
   });
 });
+
+describe('screenshot defaults', () => {
+  const docDefaults = { hide: [{ kind: 'css' as const, selector: '#demo' }], mask: [], maskColor: '#333' };
+  const withDefaults = { ...ctx, defaults: docDefaults };
+
+  test('a screenshot carries the document defaults, or none when there are none', () => {
+    expect(run('- screenshot: {name: a}\n', withDefaults).steps[0]).toMatchObject({ defaults: docDefaults });
+    expect(run('- screenshot: {name: a}\n').steps[0]).toMatchObject({ defaults: { hide: [], mask: [] } });
+  });
+
+  test('every screenshot in a block carries them', () => {
+    const { steps } = run('- screenshot: {name: a}\n- click: b\n- screenshot: {name: c}\n', withDefaults);
+    expect(steps.filter((s) => s.kind === 'screenshot')).toHaveLength(2);
+    for (const s of steps) if (s.kind === 'screenshot') expect(s.defaults).toEqual(docDefaults);
+  });
+
+  test('`defaults: false` carries none and `defaults: true` is the same as leaving it out', () => {
+    expect(run('- screenshot: {name: a, defaults: false}\n', withDefaults).steps[0]).toMatchObject({
+      defaults: { hide: [], mask: [] },
+    });
+    expect(run('- screenshot: {name: a, defaults: true}\n', withDefaults).steps[0]).toMatchObject({
+      defaults: docDefaults,
+    });
+  });
+
+  test('anything but a boolean is rejected, naming the step and the key', () => {
+    for (const v of ['none', '0', '[a]']) {
+      expect(msgs(`- goto: /\n- screenshot: {name: a, defaults: ${v}}\n`)[0]).toMatch(
+        /^a\.md:10 \(step 2\): screenshot `defaults` must be true or false/,
+      );
+    }
+  });
+});

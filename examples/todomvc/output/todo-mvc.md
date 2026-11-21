@@ -1,3 +1,9 @@
+---
+shotdoc:
+  defaults:
+    hide: [{text: This is just a demo}]
+---
+
 # TODO MVC
 
 The playwright website has an example of a TODO MVC application that demonstrates how to use Playwright for end-to-end testing.

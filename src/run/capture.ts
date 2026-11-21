@@ -119,20 +119,47 @@ async function requireMatch(locator: Locator, option: 'hide' | 'mask', target: T
   }
 }
 
+/** A hide or mask target with the rule it is held to: a screenshot's own must match, a default need not. */
+interface Layered {
+  target: Target;
+  strict: boolean;
+}
+
 /**
- * Applies the screenshot's `hide`, `mask` and `annotate` once its targets are ready. Everything
- * that can fail is checked before the page is touched. Hiding sets `visibility: hidden` on every
- * match, which keeps each element's space, and remembers the old inline value so `restore` can put
- * it back. Annotations are then drawn in an overlay, after the page's size is measured, and their
- * bounds are returned for the captured region; `restore` removes the overlay. The mask is painted
- * by Playwright into the image only, so it covers annotations too.
+ * The hide list, mask list and mask colour for one capture, built from layers in order: the
+ * document's defaults, then the screenshot's own. Only the screenshot's own targets are strict.
+ * Project-wide defaults from the config file and standing steps would be further layers, added
+ * before and between these two.
+ */
+function resolveEffects(step: ScreenshotStep): { hide: Layered[]; mask: Layered[]; maskColor: string } {
+  const layers = (defaults: Target[], own: Target[]): Layered[] => [
+    ...defaults.map((target) => ({ target, strict: false })),
+    ...own.map((target) => ({ target, strict: true })),
+  ];
+  return {
+    hide: layers(step.defaults.hide, step.hide),
+    mask: layers(step.defaults.mask, step.mask),
+    maskColor: step.maskColor ?? step.defaults.maskColor ?? DEFAULT_MASK_COLOUR,
+  };
+}
+
+/**
+ * Applies the screenshot's `hide`, `mask` and `annotate`, and the document's hide and mask
+ * defaults, once its targets are ready. Everything that can fail is checked before the page is
+ * touched. Hiding sets `visibility: hidden` on every match, which keeps each element's space, and
+ * remembers the old inline value so `restore` can put it back. Annotations are then drawn in an
+ * overlay, after the page's size is measured, and their bounds are returned for the captured
+ * region; `restore` removes the overlay. The mask is painted by Playwright into the image only, so
+ * it covers annotations too. A default target is applied to whatever matches at this moment and is
+ * never waited for.
  */
 async function applyEffects(page: Page, step: ScreenshotStep, annotations: AnnotationLocator[]): Promise<Effects> {
-  const hide = step.hide.map((t) => ({ t, loc: locate(page, t) }));
-  const mask = step.mask.map((t) => ({ t, loc: locate(page, t) }));
+  const effects = resolveEffects(step);
+  const hide = effects.hide.map((l) => ({ ...l, loc: locate(page, l.target) }));
+  const mask = effects.mask.map((l) => ({ ...l, loc: locate(page, l.target) }));
 
-  if (step.maskColor !== undefined && !(await page.evaluate((c) => CSS.supports('color', c), step.maskColor))) {
-    throw new ShotdocError(`maskColor "${step.maskColor}" is not a colour the browser understands`);
+  if (!(await page.evaluate((c) => CSS.supports('color', c), effects.maskColor))) {
+    throw new ShotdocError(`maskColor "${effects.maskColor}" is not a colour the browser understands`);
   }
   for (const a of annotations) {
     const color = a.step.color;
@@ -140,8 +167,8 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
       throw new ShotdocError(`${a.step.kind} color "${color}" is not a colour the browser understands`);
     }
   }
-  for (const { t, loc } of hide) await requireMatch(loc, 'hide', t);
-  for (const { t, loc } of mask) await requireMatch(loc, 'mask', t);
+  for (const { target, strict, loc } of hide) if (strict) await requireMatch(loc, 'hide', target);
+  for (const { target, strict, loc } of mask) if (strict) await requireMatch(loc, 'mask', target);
 
   const pageSize = annotations.length
     ? await page.evaluate(() => ({
@@ -174,7 +201,9 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
     await page
       .evaluate(() => {
         const w = window as unknown as { __shotdocHidden?: { el: HTMLElement; value: string; priority: string }[] };
-        for (const { el, value, priority } of w.__shotdocHidden ?? []) {
+        // Last in, first out: an element matched twice was saved again as hidden, and its original
+        // value, saved first, has to be the one put back.
+        for (const { el, value, priority } of [...(w.__shotdocHidden ?? [])].reverse()) {
           if (value) el.style.setProperty('visibility', value, priority);
           else el.style.removeProperty('visibility');
         }
@@ -197,7 +226,7 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
   }
 
   return {
-    opts: mask.length ? { mask: mask.map((m) => m.loc), maskColor: step.maskColor ?? DEFAULT_MASK_COLOUR } : {},
+    opts: mask.length ? { mask: mask.map((m) => m.loc), maskColor: effects.maskColor } : {},
     masked: mask.length > 0,
     bounds: drawn?.bounds ?? [],
     ...(pageSize ? { pageSize } : {}),

@@ -33,3 +33,8 @@ test('the README documents annotations: the option, each kind and the options', 
     expect(readme).toContain(word);
   }
 });
+
+test('the README documents document defaults and opting out', () => {
+  expect(readme).toContain('### Defaults for every screenshot');
+  for (const word of ['`shotdoc.defaults`', '`defaults: false`', 'front matter']) expect(readme).toContain(word);
+});

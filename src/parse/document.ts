@@ -1,5 +1,6 @@
 import { ShotdocError, ShotdocErrors } from '../errors.js';
 import { findBlocks } from './blocks.js';
+import { readFrontMatter } from './frontmatter.js';
 import { parseSteps } from './steps.js';
 import type { Block } from './types.js';
 
@@ -9,11 +10,18 @@ import type { Block } from './types.js';
  */
 export function parseDocument(source: string, file: string, opts: { baseUrl?: string } = {}): Block[] {
   const { blocks: raw, errors } = findBlocks(source, file);
+  const front = readFrontMatter(source, file);
+  errors.push(...front.errors);
   const blocks: Block[] = [];
   const seen = new Map<string, number>();
 
   for (const r of raw) {
-    const { steps, errors: stepErrors } = parseSteps(r.body, { file, blockLine: r.line, baseUrl: opts.baseUrl });
+    const { steps, errors: stepErrors } = parseSteps(r.body, {
+      file,
+      blockLine: r.line,
+      baseUrl: opts.baseUrl,
+      defaults: front.defaults,
+    });
     errors.push(...stepErrors);
 
     for (const s of steps) {
