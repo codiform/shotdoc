@@ -133,6 +133,14 @@ describe('a build with a saved login', () => {
     expect(err.message).toMatch(/could not be read/);
   });
 
+  test('with a file that is JSON but not a usable session it fails as login required', async () => {
+    const a = auth();
+    saveState({ cookies: [{}], origins: [] }, a);
+    const err = await build(a).catch((e) => e);
+    expect(err).toBeInstanceOf(LoginRequiredError);
+    expect(err.message).toMatch(/could not be restored/);
+  });
+
   test('with an expired (empty) session it fails and names the check', async () => {
     const a = auth();
     saveState({ cookies: [], origins: [] }, a);

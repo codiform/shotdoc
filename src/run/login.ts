@@ -72,7 +72,19 @@ export function readSavedSession(auth: Auth): { cookies: unknown[]; origins: unk
 export async function startLoggedIn(config: Config & { auth: Auth }): Promise<Session> {
   const auth = config.auth;
   const state = readSavedSession(auth);
-  const session = await Session.start(config, { storageState: state as never });
+  let session: Session;
+  try {
+    session = await Session.start(config, { storageState: state as never });
+  } catch (e) {
+    if (e instanceof ShotdocError) {
+      throw e;
+    }
+    // Playwright refused the file's contents: it is not a usable saved session.
+    throw new LoginRequiredError(
+      `the saved login at ${auth.state} could not be restored. Run \`shotdoc login --config ${auth.configName}\` to log in.`,
+      { file: auth.configName },
+    );
+  }
   try {
     await runLoginCheck(session.context, auth);
   } catch (e) {
@@ -131,6 +143,7 @@ export async function runLogin(
         reject(new ShotdocError('the browser was closed before the login finished: nothing was saved')),
       );
     });
+    closed.catch(() => {}); // handled by the races below; an earlier failure must not leave it unhandled
     const page = await session.openPage();
     try {
       await page.goto(auth.url);

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { ShotdocError } from './errors.js';
 import { isMap, nonEmptyString, parseTarget, rejectUnknownKeys, StepError } from './parse/steps.js';
@@ -146,16 +146,19 @@ export function loadConfig(file: string | undefined, cwd: string = process.cwd()
     config.deviceScaleFactor = s;
   }
   if (obj.auth !== undefined) {
-    config.auth = parseAuth(obj.auth, base, name, config.baseUrl, fail);
+    config.auth = parseAuth(obj.auth, { base, outDir: config.outDir, configName: name, baseUrl: config.baseUrl }, fail);
   }
   return config;
 }
 
 function parseAuth(
   raw: unknown,
-  base: string,
-  configName: string,
-  baseUrl: string | undefined,
+  {
+    base,
+    outDir,
+    configName,
+    baseUrl,
+  }: { base: string; outDir: string; configName: string; baseUrl: string | undefined },
   fail: (reason: string) => ShotdocError,
 ): Auth {
   const url = (value: unknown, what: string): string => {
@@ -165,7 +168,13 @@ function parseAuth(
     if (!isAbsoluteUrl(value) && !baseUrl) {
       throw fail(`\`${what}\` is a relative URL (${value}): set \`baseUrl\` or give an absolute URL`);
     }
-    return resolveGoto(value, baseUrl);
+    const resolved = resolveGoto(value, baseUrl);
+    try {
+      new URL(resolved);
+    } catch {
+      throw fail(`\`${what}\` is not a valid URL: ${value}`);
+    }
+    return resolved;
   };
   const guard = <T>(fn: () => T): T => {
     try {
@@ -210,5 +219,11 @@ function parseAuth(
     throw fail('`auth.state` must be a non-empty file path');
   }
   const state = resolve(base, (raw.state as string | undefined) ?? DEFAULT_AUTH_STATE);
+  const fromOut = relative(outDir, state);
+  if (fromOut === '' || !(fromOut.startsWith('..') || isAbsolute(fromOut))) {
+    throw fail(
+      `the saved login (\`auth.state\`: ${relative(base, state) || state}) must not be inside the output directory (\`outDir\`), which is meant for publishing: move one of them`,
+    );
+  }
   return { url: loginUrl, check: { url: checkUrl, condition }, state, configName };
 }

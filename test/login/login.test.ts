@@ -87,6 +87,23 @@ describe('shotdoc login', () => {
     expect(readdirSync(join(dir, '.shotdoc'))).toEqual(['auth.json']);
   });
 
+  test('a failure before the login starts is the only failure reported', async () => {
+    const unhandled: unknown[] = [];
+    const note = (e: unknown) => unhandled.push(e);
+    process.on('unhandledRejection', note);
+    try {
+      const c = config();
+      c.auth.url = 'http://127.0.0.1:1/login';
+      const err = await runLogin(c, { headless: true, ready: async () => {} }).catch((e) => e);
+      expect(err.message).toMatch(/127\.0\.0\.1:1\/login/);
+      await new Promise((r) => setTimeout(r, 200));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', note);
+    }
+    expect(existsSync(stateFile())).toBe(false);
+  });
+
   test('a browser closed early fails and saves nothing', async () => {
     const err = await runLogin(config(), {
       headless: true,

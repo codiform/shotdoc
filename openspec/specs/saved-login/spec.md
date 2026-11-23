@@ -85,6 +85,10 @@ The saved session SHALL be a file at `auth.state`, resolved against the director
 - **WHEN** `auth.state` is `secrets/login.json`
 - **THEN** the session is saved at `secrets/login.json` beside the configuration file
 
+#### Scenario: Inside the output directory
+- **WHEN** `auth.state` (or its default) resolves to a path inside the output directory
+- **THEN** validation fails before any browser is launched and says the saved session must not be inside the output directory
+
 #### Scenario: Not ignored by git
 - **WHEN** the saved session's path is in a git repository and git does not ignore it
 - **THEN** `shotdoc login` prints a warning that the file holds session cookies and should be ignored

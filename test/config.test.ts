@@ -213,4 +213,27 @@ describe('auth', () => {
     write('auth: {url: "https://a.test/login", check: {text: x}}\n');
     expect(loadConfig(dir).auth?.url).toBe('https://a.test/login');
   });
+
+  test('a saved login inside the output directory fails', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {text: x}, state: build/auth.json}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+    write('baseUrl: https://app.test\noutDir: out\nauth: {url: /login, check: {text: x}, state: out/deep/auth.json}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+  });
+
+  test('an output directory holding the default location fails; a sibling is fine', () => {
+    write('baseUrl: https://app.test\noutDir: .\nauth: {url: /login, check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+    write(
+      'baseUrl: https://app.test\noutDir: build\nauth: {url: /login, check: {text: x}, state: build-state/auth.json}\n',
+    );
+    expect(loadConfig(dir).auth?.state).toBe(join(dir, 'build-state/auth.json'));
+  });
+
+  test('a malformed URL fails before any browser is launched', () => {
+    write('auth: {url: "https://", check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth.url` is not a valid URL: https:\/\//);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {url: "http://", text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth.check.url` is not a valid URL/);
+  });
 });

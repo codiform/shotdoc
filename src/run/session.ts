@@ -37,13 +37,19 @@ export class Session {
       }
       throw new ShotdocError(`could not launch the browser: ${msg.split('\n')[0]}`);
     }
-    const context = await browser.newContext({
-      viewport: config.viewport,
-      deviceScaleFactor: config.deviceScaleFactor,
-      locale: 'en-US',
-      timezoneId: 'UTC',
-      ...(opts.storageState === undefined ? {} : { storageState: opts.storageState }),
-    });
+    let context: BrowserContext;
+    try {
+      context = await browser.newContext({
+        viewport: config.viewport,
+        deviceScaleFactor: config.deviceScaleFactor,
+        locale: 'en-US',
+        timezoneId: 'UTC',
+        ...(opts.storageState === undefined ? {} : { storageState: opts.storageState }),
+      });
+    } catch (e) {
+      await browser.close().catch(() => {});
+      throw e;
+    }
     return new Session(browser, context, config);
   }
 

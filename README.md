@@ -315,7 +315,7 @@ A browser window opens at `auth.url`. Log in as you normally would, including an
 
 ### Where the session is kept
 
-The session goes to `.shotdoc/auth.json` next to the configuration file, or to `auth.state` if you set it. It holds cookies and local storage: treat it as a secret, the same as your password. The file is readable only by you, shotdoc never writes it to the output or prints its contents, and `shotdoc login` warns if git would not ignore it. Add `.shotdoc/` to your `.gitignore`. A build never changes the file. To log in again, for example as another user, run `shotdoc login` again; it replaces the file.
+The session goes to `.shotdoc/auth.json` next to the configuration file, or to `auth.state` if you set it. It holds cookies and local storage: treat it as a secret, the same as your password. The file is readable only by you, shotdoc never writes it to the output or prints its contents, and `shotdoc login` warns if git would not ignore it. Add `.shotdoc/` to your `.gitignore`. The session must not be inside `outDir`, which is meant for publishing: such a configuration is rejected. A build never changes the file. To log in again, for example as another user, run `shotdoc login` again; it replaces the file.
 
 ### When the login has lapsed
 

@@ -79,6 +79,8 @@ async function runLoginCommand(rest: string[]): Promise<number> {
     console.error(`error: ${args}\n\n${USAGE}`);
     return EXIT_USAGE;
   }
+  // Closed on every exit, so a browser closed while the question is pending cannot keep stdin open.
+  let rl: ReturnType<typeof createInterface> | undefined;
   try {
     const result = await login(args.file, process.cwd(), {
       ...(args.config === undefined ? {} : { config: args.config }),
@@ -89,12 +91,8 @@ async function runLoginCommand(rest: string[]): Promise<number> {
       },
       ready: async (url) => {
         console.log(`Opening ${url}\nLog in in the browser window, including any MFA, then press Enter here.`);
-        const rl = createInterface({ input: process.stdin, output: process.stdout });
-        try {
-          await rl.question('Press Enter when you are logged in... ');
-        } finally {
-          rl.close();
-        }
+        rl = createInterface({ input: process.stdin, output: process.stdout });
+        await rl.question('Press Enter when you are logged in... ');
       },
     });
     if (result.configPath && dirname(result.configPath) !== process.cwd()) {
@@ -107,6 +105,8 @@ async function runLoginCommand(rest: string[]): Promise<number> {
     return EXIT_OK;
   } catch (e) {
     return report(e);
+  } finally {
+    rl?.close();
   }
 }
 
