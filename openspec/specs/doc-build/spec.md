@@ -84,7 +84,7 @@ When any step fails, the system SHALL stop executing, SHALL exit with a non-zero
 - **THEN** the build fails and the message names the URL and the status
 
 ### Requirement: Minimal configuration
-The system SHALL read an optional configuration file, supporting a base URL, an output directory, and viewport size and device scale defaults. Absent keys SHALL take documented defaults, and the absence of any configuration file SHALL be equivalent to an empty one. A relative output directory SHALL resolve against the directory holding the configuration file.
+The system SHALL read an optional configuration file, supporting a base URL, an output directory, viewport size and device scale defaults, and an optional login (`auth`). Absent keys SHALL take documented defaults, and the absence of any configuration file SHALL be equivalent to an empty one. A relative output directory SHALL resolve against the directory holding the configuration file.
 
 #### Scenario: No configuration file
 - **WHEN** no `shotdoc.config.yaml` exists and the document uses only absolute URLs
