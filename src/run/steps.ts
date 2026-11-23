@@ -1,11 +1,12 @@
 import { join } from 'node:path';
 import type { Response } from 'playwright';
 import { ShotdocError } from '../errors.js';
-import { type Block, describeTarget, type Step, type WaitCondition } from '../parse/types.js';
+import { type Block, describeTarget, type Step } from '../parse/types.js';
 import { resolveGoto } from '../url.js';
 import { takeScreenshot } from './capture.js';
 import type { Session } from './session.js';
 import { explain, locate } from './targets.js';
+import { describeWait, waitFor } from './wait.js';
 
 export interface Shot {
   name: string;
@@ -18,21 +19,6 @@ export interface RunContext {
   session: Session;
   file: string;
   stageDir: string;
-}
-
-export function describeWait(c: WaitCondition): string {
-  switch (c.kind) {
-    case 'visible':
-      return `${describeTarget(c.target)} to become visible`;
-    case 'hidden':
-      return `${describeTarget(c.target)} to become hidden`;
-    case 'text':
-      return `the text "${c.text}" to appear`;
-    case 'network':
-      return 'the network to become idle';
-    case 'ms':
-      return `${c.ms} ms`;
-  }
 }
 
 function stepTarget(step: Step): string | undefined {
@@ -86,8 +72,11 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
       const what = describeTarget(step.target);
       try {
         const locator = locate(session.page, step.target);
-        if (step.kind === 'dblclick') await locator.dblclick();
-        else await locator.hover();
+        if (step.kind === 'dblclick') {
+          await locator.dblclick();
+        } else {
+          await locator.hover();
+        }
       } catch (e) {
         throw explain(e, what);
       }
@@ -109,8 +98,11 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
     case 'press': {
       const what = step.target ? describeTarget(step.target) : `key ${step.key}`;
       try {
-        if (step.target) await locate(session.page, step.target).press(step.key);
-        else await session.page.keyboard.press(step.key);
+        if (step.target) {
+          await locate(session.page, step.target).press(step.key);
+        } else {
+          await session.page.keyboard.press(step.key);
+        }
       } catch (e) {
         if (e instanceof Error && /Unknown key/.test(e.message)) {
           throw new ShotdocError(
@@ -121,32 +113,9 @@ async function exec(step: Step, ctx: RunContext, shots: Shot[]): Promise<void> {
       }
       return;
     }
-    case 'wait': {
-      const c = step.condition;
-      const page = session.page;
-      try {
-        switch (c.kind) {
-          case 'visible':
-            await locate(page, c.target).waitFor({ state: 'visible' });
-            break;
-          case 'hidden':
-            await locate(page, c.target).waitFor({ state: 'hidden' });
-            break;
-          case 'text':
-            await page.waitForFunction((t) => document.body.innerText.includes(t), c.text);
-            break;
-          case 'network':
-            await page.waitForLoadState('networkidle');
-            break;
-          case 'ms':
-            await page.waitForTimeout(c.ms);
-            break;
-        }
-      } catch (e) {
-        throw explain(e, describeWait(c));
-      }
+    case 'wait':
+      await waitFor(session.page, step.condition);
       return;
-    }
     case 'screenshot': {
       const path = join(ctx.stageDir, `${step.name}.png`);
       await takeScreenshot(session, step, path);

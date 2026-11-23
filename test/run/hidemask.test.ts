@@ -52,8 +52,12 @@ describe('hide', () => {
         const a = pixel(plain!, x, y);
         const b = pixel(hidden!, x, y);
         // #late appears about 500 ms in, so it can differ between the two captures.
-        if (x >= 260 && x < 320 && y >= 100 && y < 150) continue;
-        if (a.join() !== b.join()) changedBelow++;
+        if (x >= 260 && x < 320 && y >= 100 && y < 150) {
+          continue;
+        }
+        if (a.join() !== b.join()) {
+          changedBelow++;
+        }
       }
     }
     expect(changedBelow).toBe(0);
@@ -95,7 +99,9 @@ describe('mask', () => {
     // Every pixel of each date cell (100x30 at x=20, with text in it) is the mask colour: no text shows.
     for (const top of [200, 240, 280]) {
       for (let y = top; y < top + 30; y++) {
-        for (let x = 20; x < 120; x++) expect(pixel(s!, x, y)).toEqual(MASK);
+        for (let x = 20; x < 120; x++) {
+          expect(pixel(s!, x, y)).toEqual(MASK);
+        }
       }
     }
     expect(pixel(s!, 60, 120)).toEqual(RED);

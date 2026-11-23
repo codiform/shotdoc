@@ -1,5 +1,6 @@
 // Rebuilds every example: each Markdown file in examples/*/input/ is built with the compiled CLI.
 // Every example is attempted even if an earlier one fails, and the exit code says whether any did.
+// An example that needs a login nobody has saved (exit status 3) is skipped, not failed.
 import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -19,14 +20,24 @@ const sources = readdirSync(examples, { withFileTypes: true })
   })
   .sort();
 
+const NEEDS_LOGIN = 3;
 const failed = [];
+const skipped = [];
 for (const source of sources) {
   console.log(`\n==> ${source}`);
   const run = spawnSync(process.execPath, [cli, 'build', source], { cwd: root, stdio: 'inherit' });
-  if (run.status !== 0) failed.push(source);
+  if (run.status === NEEDS_LOGIN) {
+    skipped.push(source);
+    console.log(`skipped: needs login, run \`npx shotdoc login ${source}\``);
+  } else if (run.status !== 0) {
+    failed.push(source);
+  }
 }
 
-console.log(`\n${sources.length - failed.length} of ${sources.length} examples built.`);
+const built = sources.length - failed.length - skipped.length;
+console.log(
+  `\n${built} of ${sources.length} examples built${skipped.length ? `, ${skipped.length} skipped (need login)` : ''}.`,
+);
 if (failed.length) {
   console.error(`Failed:\n${failed.map((f) => `  ${f}`).join('\n')}`);
   process.exit(1);

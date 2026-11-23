@@ -14,11 +14,15 @@ function describeColour(data: Buffer<ArrayBufferLike>) {
 export function blankColour(png: Buffer): string | undefined {
   const { data } = PNG.sync.read(png);
 
-  if (data.length < 4) return undefined;
+  if (data.length < 4) {
+    return undefined;
+  }
 
   const first = data.readUInt32LE(0);
   for (let i = 4; i < data.length; i += 4) {
-    if (data.readUInt32LE(i) !== first) return undefined;
+    if (data.readUInt32LE(i) !== first) {
+      return undefined;
+    }
   }
   return describeColour(data);
 }

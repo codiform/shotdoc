@@ -25,7 +25,9 @@ export function parseDocument(source: string, file: string, opts: { baseUrl?: st
     errors.push(...stepErrors);
 
     for (const s of steps) {
-      if (s.kind !== 'screenshot') continue;
+      if (s.kind !== 'screenshot') {
+        continue;
+      }
 
       const firstLine = seen.get(s.name);
       if (firstLine !== undefined) {

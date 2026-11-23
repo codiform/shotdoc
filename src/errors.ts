@@ -27,16 +27,30 @@ export class ShotdocError extends Error {
   }
 }
 
+/** The build needs a saved login and has none that works: the author must run `shotdoc login`. */
+export class LoginRequiredError extends ShotdocError {
+  constructor(reason: string, location: ErrorLocation = {}) {
+    super(reason, location);
+    this.name = 'LoginRequiredError';
+  }
+}
+
 function definedOnly(l: ErrorLocation): ErrorLocation {
   return Object.fromEntries(Object.entries(l).filter(([, v]) => v !== undefined));
 }
 
 export function formatError(reason: string, loc: ErrorLocation = {}): string {
   let where = loc.file ?? '';
-  if (loc.blockLine !== undefined) where += `${where ? ':' : 'line '}${loc.blockLine}`;
+  if (loc.blockLine !== undefined) {
+    where += `${where ? ':' : 'line '}${loc.blockLine}`;
+  }
   const detail: string[] = [];
-  if (loc.step !== undefined) detail.push(`step ${loc.step}`);
-  if (loc.target !== undefined) detail.push(loc.target);
+  if (loc.step !== undefined) {
+    detail.push(`step ${loc.step}`);
+  }
+  if (loc.target !== undefined) {
+    detail.push(loc.target);
+  }
   const tail = detail.length ? ` (${detail.join(', ')})` : '';
   return `${where}${tail}${where || tail ? ': ' : ''}${reason}`;
 }

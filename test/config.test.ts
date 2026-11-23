@@ -138,3 +138,102 @@ describe('loadConfig with a file path', () => {
     expect(() => load(join(dir, 'asdir'), dir)).toThrow(/cannot read the configuration file/);
   });
 });
+
+describe('auth', () => {
+  const AUTH =
+    'baseUrl: https://app.test/\nauth:\n  url: /login\n  check: {url: /secure, visible: {role: heading, name: Secure Area}}\n';
+
+  test('a valid login is resolved against baseUrl', () => {
+    write(AUTH);
+    expect(loadConfig(dir).auth).toEqual({
+      url: 'https://app.test/login',
+      check: {
+        url: 'https://app.test/secure',
+        condition: { kind: 'visible', target: { kind: 'role', role: 'heading', name: 'Secure Area' } },
+      },
+      state: join(dir, '.shotdoc/auth.json'),
+      configName: CONFIG_FILE,
+    });
+  });
+
+  test('check.url defaults to auth.url and text is a condition', () => {
+    write('baseUrl: https://app.test\nauth: {url: /home, check: {text: Sign out}}\n');
+    const auth = loadConfig(dir).auth;
+    expect(auth?.check).toEqual({ url: 'https://app.test/home', condition: { kind: 'text', text: 'Sign out' } });
+  });
+
+  test('state is resolved against the configuration directory', () => {
+    write(`${AUTH}  state: secrets/login.json\n`);
+    expect(loadConfig(dir).auth?.state).toBe(join(dir, 'secrets/login.json'));
+  });
+
+  test('a config without auth has none', () => {
+    write('baseUrl: https://app.test\n');
+    expect(loadConfig(dir)).not.toHaveProperty('auth');
+  });
+
+  test('a missing url fails', () => {
+    write('auth: {check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth` needs a `url`/);
+  });
+
+  test('a missing check fails and says a check is required', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login}\n');
+    expect(() => loadConfig(dir)).toThrow(/needs a `check`/);
+  });
+
+  test('both visible and text fail, as does neither', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {visible: h1, text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/exactly one of `visible` or `text`/);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {url: /x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/exactly one of `visible` or `text`/);
+  });
+
+  test('unknown keys are named at each level', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {text: x}, user: me}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth` has unknown key `user` \(allowed: url, check, state\)/);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {hidden: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth.check` has unknown key `hidden`/);
+  });
+
+  test('a malformed target or value fails', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {visible: {role: heading, colour: red}}}\n');
+    expect(() => loadConfig(dir)).toThrow(/auth\.check\.visible/);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {text: ""}}\n');
+    expect(() => loadConfig(dir)).toThrow(/auth\.check\.text/);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {text: x}, state: 3}\n');
+    expect(() => loadConfig(dir)).toThrow(/auth\.state/);
+    write('auth: nope\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth` must be a mapping/);
+  });
+
+  test('a relative url without a baseUrl fails; an absolute one is fine', () => {
+    write('auth: {url: /login, check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/relative URL/);
+    write('auth: {url: "https://a.test/login", check: {text: x}}\n');
+    expect(loadConfig(dir).auth?.url).toBe('https://a.test/login');
+  });
+
+  test('a saved login inside the output directory fails', () => {
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {text: x}, state: build/auth.json}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+    write('baseUrl: https://app.test\noutDir: out\nauth: {url: /login, check: {text: x}, state: out/deep/auth.json}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+  });
+
+  test('an output directory holding the default location fails; a sibling is fine', () => {
+    write('baseUrl: https://app.test\noutDir: .\nauth: {url: /login, check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/must not be inside the output directory/);
+    write(
+      'baseUrl: https://app.test\noutDir: build\nauth: {url: /login, check: {text: x}, state: build-state/auth.json}\n',
+    );
+    expect(loadConfig(dir).auth?.state).toBe(join(dir, 'build-state/auth.json'));
+  });
+
+  test('a malformed URL fails before any browser is launched', () => {
+    write('auth: {url: "https://", check: {text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth.url` is not a valid URL: https:\/\//);
+    write('baseUrl: https://app.test\nauth: {url: /login, check: {url: "http://", text: x}}\n');
+    expect(() => loadConfig(dir)).toThrow(/`auth.check.url` is not a valid URL/);
+  });
+});

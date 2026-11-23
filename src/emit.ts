@@ -27,7 +27,9 @@ export function buildDocument(
     const refs = (shots.get(block.line) ?? []).map((s) => `![${escapeAlt(s.alt ?? s.name)}](${imageRef(s.name)})`);
     if (refs.length) {
       let text = refs.join(eol + eol) + eol;
-      if (!/\n$/.test(last)) text = text.slice(0, -eol.length); // block ended the file without a newline
+      if (!/\n$/.test(last)) {
+        text = text.slice(0, -eol.length); // block ended the file without a newline
+      }
       out += text;
     }
     next = block.endLine;

@@ -412,7 +412,11 @@ describe('screenshot defaults', () => {
   test('every screenshot in a block carries them', () => {
     const { steps } = run('- screenshot: {name: a}\n- click: b\n- screenshot: {name: c}\n', withDefaults);
     expect(steps.filter((s) => s.kind === 'screenshot')).toHaveLength(2);
-    for (const s of steps) if (s.kind === 'screenshot') expect(s.defaults).toEqual(docDefaults);
+    for (const s of steps) {
+      if (s.kind === 'screenshot') {
+        expect(s.defaults).toEqual(docDefaults);
+      }
+    }
   });
 
   test('`defaults: false` carries none and `defaults: true` is the same as leaving it out', () => {

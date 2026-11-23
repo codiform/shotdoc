@@ -7,8 +7,12 @@ export const isAbsoluteUrl = (u: string): boolean => /^[a-z][a-z0-9+.-]*:/i.test
  * `/login`, `login` and `./login` all go under the base URL's path, with or without a trailing slash.
  */
 export function resolveGoto(value: string, base: string | undefined): string {
-  if (isAbsoluteUrl(value) || !base) return value;
+  if (isAbsoluteUrl(value) || !base) {
+    return value;
+  }
   const root = new URL(base);
-  if (!root.pathname.endsWith('/')) root.pathname += '/';
+  if (!root.pathname.endsWith('/')) {
+    root.pathname += '/';
+  }
   return new URL(value.startsWith('/') ? value.slice(1) : value, root).toString();
 }
