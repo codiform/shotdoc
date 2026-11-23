@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest';
 import type { ShotdocErrors } from '../../src/errors.js';
 import { parseDocument } from '../../src/parse/document.js';
+import { FENCE } from '../helpers/fence.js';
 
 const base = { baseUrl: 'https://example.test' };
 
@@ -58,7 +59,7 @@ test('front matter defaults reach every screenshot in every block', () => {
 test('block lines are counted from the top of the file, front matter included', () => {
   const blocks = parseDocument(`${FRONT}${BLOCK}`, 'a.md', base);
   expect(blocks[0]?.line).toBe(9);
-  expect(errorsOf(`${FRONT}\`\`\`shotdoc\n- swipe: x\n\`\`\`\n`)[0]).toMatch(/^a\.md:9 \(step 1\)/);
+  expect(errorsOf(`${FRONT}${FENCE}shotdoc\n- swipe: x\n${FENCE}\n`)[0]).toMatch(/^a\.md:9 \(step 1\)/);
 });
 
 test('a document without front matter parses as before', () => {
@@ -67,7 +68,7 @@ test('a document without front matter parses as before', () => {
 });
 
 test('a front matter error stops the build, and is reported with block errors', () => {
-  const m = errorsOf(`---\nshotdoc: {defalts: {}}\n---\n\n\`\`\`shotdoc\n- swipe: x\n\`\`\`\n`);
+  const m = errorsOf(`---\nshotdoc: {defalts: {}}\n---\n\n${FENCE}shotdoc\n- swipe: x\n${FENCE}\n`);
   expect(m).toHaveLength(2);
   expect(m[0]).toMatch(/^a\.md: the front matter `shotdoc` has unknown key `defalts`/);
   expect(m[1]).toMatch(/^a\.md:5 \(step 1\).*swipe/);

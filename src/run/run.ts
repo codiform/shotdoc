@@ -1,5 +1,6 @@
 import type { Config } from '../config.js';
 import type { Block } from '../parse/types.js';
+import { startLoggedIn } from './login.js';
 import { Session } from './session.js';
 import { runBlock, type Shot } from './steps.js';
 
@@ -11,7 +12,8 @@ export async function runDocument(
   blocks: Block[],
   opts: { config: Config; file: string; stageDir: string },
 ): Promise<Map<number, Shot[]>> {
-  const session = await Session.start(opts.config);
+  const { config } = opts;
+  const session = config.auth ? await startLoggedIn({ ...config, auth: config.auth }) : await Session.start(config);
   const out = new Map<number, Shot[]>();
   try {
     for (const block of blocks) {

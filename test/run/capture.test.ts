@@ -78,7 +78,9 @@ describe('viewport captures and stable rendering', () => {
       const refPath = `${process.env.TMPDIR ?? '/tmp'}/shotdoc-caret-ref.png`;
       await takeScreenshot(session, step, refPath);
       const reference = PNG.sync.read((await import('node:fs')).readFileSync(refPath));
-      for (const s of shots) expect(PNG.sync.read(s).data.equals(reference.data)).toBe(true);
+      for (const s of shots) {
+        expect(PNG.sync.read(s).data.equals(reference.data)).toBe(true);
+      }
     } finally {
       await session.close();
     }

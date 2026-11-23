@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { findBlocks } from '../../src/parse/blocks.js';
+import { FENCE } from '../helpers/fence.js';
 
 const f = (s: string) => findBlocks(s, 'a.md');
 
@@ -34,7 +35,7 @@ test('accepts a block after a list', () => {
 });
 
 test.each(['js', 'state=fresh', 'save=admin'])('reserved attribute %s is not supported yet', (attr) => {
-  const { blocks, errors } = f(`intro\n\n\`\`\`shotdoc ${attr}\n- goto: /\n\`\`\`\n`);
+  const { blocks, errors } = f(`intro\n\n${FENCE}shotdoc ${attr}\n- goto: /\n${FENCE}\n`);
   expect(blocks).toEqual([]);
   expect(errors[0]?.message).toBe(`a.md:3: attribute \`${attr}\` is not supported yet`);
 });

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
 import { build } from '../src/build.js';
+import { FENCE } from './helpers/fence.js';
 import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 let server: FixtureServer;
@@ -118,7 +119,7 @@ test('a blank screenshot fails the build: no built document and no images', asyn
 });
 
 const FRONT = '---\ntitle: Guide\nshotdoc:\n  defaults:\n    hide: ["#banner"]\n---\n';
-const WITH_DEFAULTS = `${FRONT}\n# Guide\n\n\`\`\`shotdoc\n- goto: /hidemask.html\n- screenshot: {name: shot}\n\`\`\`\n\nEnd.\n`;
+const WITH_DEFAULTS = `${FRONT}\n# Guide\n\n${FENCE}shotdoc\n- goto: /hidemask.html\n- screenshot: {name: shot}\n${FENCE}\n\nEnd.\n`;
 
 test('front matter defaults are applied and the shotdoc key is left out of the built front matter', async () => {
   write('guide.md', WITH_DEFAULTS);

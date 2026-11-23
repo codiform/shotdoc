@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { PNG } from 'pngjs';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
 import { build } from '../src/build.js';
+import { FENCE } from './helpers/fence.js';
 import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 import { countPixels } from './helpers/shot.js';
 
@@ -27,18 +28,18 @@ const images = (): Map<string, Buffer> => {
 
 const DOCUMENT = `# Repeatable
 
-\`\`\`shotdoc
+${FENCE}shotdoc
 - goto: /spinner.html
 - screenshot: {name: viewport}
 - screenshot: {name: stage, target: "#stage"}
-\`\`\`
+${FENCE}
 
-\`\`\`shotdoc
+${FENCE}shotdoc
 - goto: /rows.html
 - screenshot: {name: row, target: "li:has-text('Ship it')"}
 - goto: /form.html
 - screenshot: {name: form}
-\`\`\`
+${FENCE}
 `;
 
 test('building the same document twice gives byte-identical images, with an endless CSS animation and a transition on the page', async () => {

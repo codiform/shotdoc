@@ -14,8 +14,14 @@ function image(width: number, height: number, fill: Rgba, dots: Array<[number, n
     png.data[i + 2] = c[2];
     png.data[i + 3] = c[3];
   };
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) set(x, y, fill);
-  for (const [x, y, c] of dots) set(x, y, c);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      set(x, y, fill);
+    }
+  }
+  for (const [x, y, c] of dots) {
+    set(x, y, c);
+  }
   return PNG.sync.write(png);
 }
 

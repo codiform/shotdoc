@@ -72,7 +72,7 @@ describe('hover', () => {
   const rowShot = `- screenshot: {name: row, target: ${ROW}, padding: 0}`;
 
   test('without a hover the delete control is not in the image', async () => {
-    const { row } = await shoot(server.url, ['- goto: /rows.html\n' + rowShot]);
+    const { row } = await shoot(server.url, [`- goto: /rows.html\n${rowShot}`]);
     expect(countPixels(row!, RED)).toBe(0);
   });
 

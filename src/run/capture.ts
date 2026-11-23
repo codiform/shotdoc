@@ -47,9 +47,13 @@ async function waitUntilReady(locator: Locator): Promise<void> {
           const now = key();
           still = now === last ? still + 1 : 0;
           last = now;
-          if (still >= 2) resolve();
-          else if (performance.now() - started > timeout) reject(new Error('element kept moving'));
-          else requestAnimationFrame(tick);
+          if (still >= 2) {
+            resolve();
+          } else if (performance.now() - started > timeout) {
+            reject(new Error('element kept moving'));
+          } else {
+            requestAnimationFrame(tick);
+          }
         };
         requestAnimationFrame(tick);
       }),
@@ -167,8 +171,16 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
       throw new ShotdocError(`${a.step.kind} color "${color}" is not a colour the browser understands`);
     }
   }
-  for (const { target, strict, loc } of hide) if (strict) await requireMatch(loc, 'hide', target);
-  for (const { target, strict, loc } of mask) if (strict) await requireMatch(loc, 'mask', target);
+  for (const { target, strict, loc } of hide) {
+    if (strict) {
+      await requireMatch(loc, 'hide', target);
+    }
+  }
+  for (const { target, strict, loc } of mask) {
+    if (strict) {
+      await requireMatch(loc, 'mask', target);
+    }
+  }
 
   const pageSize = annotations.length
     ? await page.evaluate(() => ({
@@ -196,7 +208,9 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
   let drawn: Awaited<ReturnType<typeof drawAnnotations>> | undefined;
   const restore = async () => {
     await drawn?.remove();
-    if (hide.length === 0) return;
+    if (hide.length === 0) {
+      return;
+    }
     // The page can be gone when a capture fails badly; there is nothing to put back then.
     await page
       .evaluate(() => {
@@ -204,8 +218,11 @@ async function applyEffects(page: Page, step: ScreenshotStep, annotations: Annot
         // Last in, first out: an element matched twice was saved again as hidden, and its original
         // value, saved first, has to be the one put back.
         for (const { el, value, priority } of [...(w.__shotdocHidden ?? [])].reverse()) {
-          if (value) el.style.setProperty('visibility', value, priority);
-          else el.style.removeProperty('visibility');
+          if (value) {
+            el.style.setProperty('visibility', value, priority);
+          } else {
+            el.style.removeProperty('visibility');
+          }
         }
         delete w.__shotdocHidden;
       })
@@ -252,7 +269,9 @@ export async function takeScreenshot(session: Session, step: ScreenshotStep, pat
 
   // Annotation targets are waited for before the page is touched, so a failure leaves nothing to undo.
   const annotations: AnnotationLocator[] = [];
-  if (step.annotate.length) await locators[0]!.scrollIntoViewIfNeeded();
+  if (step.annotate.length) {
+    await locators[0]!.scrollIntoViewIfNeeded();
+  }
   for (const a of step.annotate) {
     const locator = locate(page, a.target);
     const what = describeTarget(a.target);
@@ -296,7 +315,9 @@ async function capture(
   for (let attempt = 0; attempt < 3; attempt++) {
     const g = await measure(page, locators, fx.pageSize);
     const clip = region([...g.rects, ...fx.bounds], padding, g.page.width, g.page.height);
-    if (clip.width > vp.width || clip.height > vp.height) break;
+    if (clip.width > vp.width || clip.height > vp.height) {
+      break;
+    }
     if (contains(clip, g.scroll.x, g.scroll.y, vp.width, vp.height)) {
       const png = await page.screenshot({
         clip: { ...clip, x: clip.x - g.scroll.x, y: clip.y - g.scroll.y },

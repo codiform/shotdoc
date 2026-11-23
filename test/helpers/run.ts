@@ -4,10 +4,12 @@ import { join } from 'node:path';
 import type { Page } from 'playwright';
 import type { Config } from '../../src/config.js';
 import { parseDocument } from '../../src/parse/document.js';
+import { startLoggedIn } from '../../src/run/login.js';
 import { runDocument } from '../../src/run/run.js';
 import { Session } from '../../src/run/session.js';
 import type { Shot } from '../../src/run/steps.js';
 import { runBlock } from '../../src/run/steps.js';
+import { FENCE } from './fence.js';
 
 export function testConfig(baseUrl: string, over: Partial<Config> = {}): Config {
   return {
@@ -20,7 +22,8 @@ export function testConfig(baseUrl: string, over: Partial<Config> = {}): Config 
 }
 
 /** Wraps steps (YAML) in shotdoc fences, one block per entry. */
-export const md = (...blocks: string[]) => blocks.map((b) => '```shotdoc\n' + b.trim() + '\n```\n').join('\ntext\n\n');
+export const md = (...blocks: string[]) =>
+  blocks.map((b) => `${FENCE}shotdoc\n${b.trim()}\n${FENCE}\n`).join('\ntext\n\n');
 
 /** Parses and runs a Markdown document against a base URL; always cleans its stage dir. */
 export async function runMd(
@@ -53,9 +56,11 @@ export async function runThen<T>(
   const config = testConfig(baseUrl, over);
   const blocks = parseDocument(source, 'doc.md', { baseUrl: config.baseUrl });
   const stageDir = mkdtempSync(join(tmpdir(), 'shotdoc-then-'));
-  const session = await Session.start(config);
+  const session = config.auth ? await startLoggedIn({ ...config, auth: config.auth }) : await Session.start(config);
   try {
-    for (const block of blocks) await runBlock(block, { session, file: 'doc.md', stageDir });
+    for (const block of blocks) {
+      await runBlock(block, { session, file: 'doc.md', stageDir });
+    }
     return await inspect(session.page);
   } finally {
     await session.close();

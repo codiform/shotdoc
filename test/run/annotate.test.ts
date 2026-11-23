@@ -48,7 +48,11 @@ describe('highlight', () => {
     expect(at(398, 325)).toEqual(WHITE);
     expect(at(399, 325)).toEqual(WHITE);
     expect(at(450, 296)).toEqual(PINK);
-    for (let y = 300; y < 350; y++) for (let x = 400; x < 500; x++) expect(at(x, y)).toEqual(BLUE);
+    for (let y = 300; y < 350; y++) {
+      for (let x = 400; x < 500; x++) {
+        expect(at(x, y)).toEqual(BLUE);
+      }
+    }
   });
 
   test('colour override', async () => {
@@ -104,11 +108,16 @@ describe('badge', () => {
     let outside = 0;
     for (let y = 416; y < 444; y++) {
       for (let x = 326; x < 354; x++) {
-        if (pixel(alone, x - 300, y - 400).join() === pixel(second, x - 286, y - 386).join()) continue;
+        if (pixel(alone, x - 300, y - 400).join() === pixel(second, x - 286, y - 386).join()) {
+          continue;
+        }
         const dx = x - 340;
         const dy = y - 430;
-        if (dx * dx + dy * dy <= 12 * 12) inside++;
-        else outside++;
+        if (dx * dx + dy * dy <= 12 * 12) {
+          inside++;
+        } else {
+          outside++;
+        }
       }
     }
     expect(inside).toBeGreaterThan(10); // the digit differs
@@ -127,8 +136,12 @@ describe('the page is not disturbed', () => {
     for (let y = 0; y < plain!.height; y++) {
       for (let x = 0; x < plain!.width; x++) {
         const doc = { x: 300 + x, y: 400 + y };
-        if (doc.x > 340 - 20 && doc.x < 420 + 20 && doc.y > 430 - 20 && doc.y < 470 + 20) continue;
-        if (pixel(plain!, x, y).join() !== pixel(marked!, x, y).join()) far++;
+        if (doc.x > 340 - 20 && doc.x < 420 + 20 && doc.y > 430 - 20 && doc.y < 470 + 20) {
+          continue;
+        }
+        if (pixel(plain!, x, y).join() !== pixel(marked!, x, y).join()) {
+          far++;
+        }
       }
     }
     expect(far).toBe(0);

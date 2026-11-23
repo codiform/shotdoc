@@ -5,6 +5,8 @@ import { ShotdocError } from '../errors.js';
 /** Fixed timeout for every waiting action, in milliseconds. */
 export const TIMEOUT_MS = 10_000;
 
+type StorageState = NonNullable<Parameters<Browser['newContext']>[0]>['storageState'];
+
 /** One headless browser session: a fresh context, and one page once the first `goto` has run. */
 export class Session {
   private pageRef?: Page;
@@ -18,10 +20,14 @@ export class Session {
     context.setDefaultNavigationTimeout(TIMEOUT_MS);
   }
 
-  static async start(config: Config): Promise<Session> {
+  /**
+   * Starts a browser with a fresh context: clean, or from a saved session. `headless: false` is for
+   * `shotdoc login` only; builds are always headless.
+   */
+  static async start(config: Config, opts: { storageState?: StorageState; headless?: boolean } = {}): Promise<Session> {
     let browser: Browser;
     try {
-      browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({ headless: opts.headless ?? true });
     } catch (e) {
       const msg = (e as Error).message;
       if (/Executable doesn't exist/i.test(msg)) {
@@ -36,6 +42,7 @@ export class Session {
       deviceScaleFactor: config.deviceScaleFactor,
       locale: 'en-US',
       timezoneId: 'UTC',
+      ...(opts.storageState === undefined ? {} : { storageState: opts.storageState }),
     });
     return new Session(browser, context, config);
   }

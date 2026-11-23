@@ -18,7 +18,9 @@ export function locate(page: Page, t: Target): Locator {
 
 /** Turns a Playwright failure into a short reason an author can act on. */
 export function explain(e: unknown, what: string): ShotdocError {
-  if (e instanceof ShotdocError) return e;
+  if (e instanceof ShotdocError) {
+    return e;
+  }
   const msg = e instanceof Error ? e.message : String(e);
   const strict = /resolved to (\d+) elements/.exec(msg);
   if (strict) {

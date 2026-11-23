@@ -2,8 +2,26 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { ShotdocError } from './errors.js';
+import { isMap, nonEmptyString, parseTarget, rejectUnknownKeys, StepError } from './parse/steps.js';
+import type { WaitCondition } from './parse/types.js';
+import { isAbsoluteUrl, resolveGoto } from './url.js';
 
 export const CONFIG_FILE = 'shotdoc.config.yaml';
+
+/** The default place for a saved login, beside the configuration file. */
+export const DEFAULT_AUTH_STATE = '.shotdoc/auth.json';
+
+/** A login by hand, saved by `shotdoc login` and checked before every build. */
+export interface Auth {
+  /** Absolute URL where the login starts. */
+  url: string;
+  /** What proves the session is logged in: a page to load and one positive condition on it. */
+  check: { url: string; condition: Extract<WaitCondition, { kind: 'visible' | 'text' }> };
+  /** Absolute path of the saved session file. */
+  state: string;
+  /** The configuration file's name, for messages. */
+  configName: string;
+}
 
 export interface Config {
   baseUrl?: string;
@@ -11,9 +29,12 @@ export interface Config {
   outDir: string;
   viewport: { width: number; height: number };
   deviceScaleFactor: number;
+  auth?: Auth;
 }
 
-const KEYS = ['baseUrl', 'outDir', 'viewport', 'deviceScaleFactor'];
+const KEYS = ['baseUrl', 'outDir', 'viewport', 'deviceScaleFactor', 'auth'];
+const AUTH_KEYS = ['url', 'check', 'state'];
+const CHECK_KEYS = ['url', 'visible', 'text'];
 
 /**
  * Chooses the configuration file: the one named with `--config`, otherwise the nearest
@@ -31,9 +52,13 @@ export function findConfig(source: string, cwd: string, explicit?: string): stri
   let dir = dirname(resolve(cwd, source));
   for (;;) {
     const candidate = join(dir, CONFIG_FILE);
-    if (existsSync(candidate)) return candidate;
+    if (existsSync(candidate)) {
+      return candidate;
+    }
     const parent = dirname(dir);
-    if (parent === dir) break;
+    if (parent === dir) {
+      break;
+    }
     dir = parent;
   }
   const fallback = join(cwd, CONFIG_FILE);
@@ -79,7 +104,9 @@ export function loadConfig(file: string | undefined, cwd: string = process.cwd()
   };
 
   if (obj.baseUrl !== undefined) {
-    if (typeof obj.baseUrl !== 'string') throw fail('`baseUrl` must be a string');
+    if (typeof obj.baseUrl !== 'string') {
+      throw fail('`baseUrl` must be a string');
+    }
     try {
       new URL(obj.baseUrl);
     } catch {
@@ -88,7 +115,9 @@ export function loadConfig(file: string | undefined, cwd: string = process.cwd()
     config.baseUrl = obj.baseUrl;
   }
   if (obj.outDir !== undefined) {
-    if (typeof obj.outDir !== 'string' || !obj.outDir) throw fail('`outDir` must be a non-empty string');
+    if (typeof obj.outDir !== 'string' || !obj.outDir) {
+      throw fail('`outDir` must be a non-empty string');
+    }
     config.outDir = resolve(base, obj.outDir);
   }
   if (obj.viewport !== undefined) {
@@ -97,7 +126,9 @@ export function loadConfig(file: string | undefined, cwd: string = process.cwd()
       throw fail('`viewport` must be a mapping with `width` and `height`');
     }
     for (const k of Object.keys(v)) {
-      if (k !== 'width' && k !== 'height') throw fail(`unknown configuration key \`viewport.${k}\``);
+      if (k !== 'width' && k !== 'height') {
+        throw fail(`unknown configuration key \`viewport.${k}\``);
+      }
     }
     for (const k of ['width', 'height'] as const) {
       const val = v[k] ?? config.viewport[k];
@@ -109,8 +140,75 @@ export function loadConfig(file: string | undefined, cwd: string = process.cwd()
   }
   if (obj.deviceScaleFactor !== undefined) {
     const s = obj.deviceScaleFactor;
-    if (typeof s !== 'number' || !(s > 0)) throw fail('`deviceScaleFactor` must be a positive number');
+    if (typeof s !== 'number' || !(s > 0)) {
+      throw fail('`deviceScaleFactor` must be a positive number');
+    }
     config.deviceScaleFactor = s;
   }
+  if (obj.auth !== undefined) {
+    config.auth = parseAuth(obj.auth, base, name, config.baseUrl, fail);
+  }
   return config;
+}
+
+function parseAuth(
+  raw: unknown,
+  base: string,
+  configName: string,
+  baseUrl: string | undefined,
+  fail: (reason: string) => ShotdocError,
+): Auth {
+  const url = (value: unknown, what: string): string => {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw fail(`\`${what}\` must be a non-empty string`);
+    }
+    if (!isAbsoluteUrl(value) && !baseUrl) {
+      throw fail(`\`${what}\` is a relative URL (${value}): set \`baseUrl\` or give an absolute URL`);
+    }
+    return resolveGoto(value, baseUrl);
+  };
+  const guard = <T>(fn: () => T): T => {
+    try {
+      return fn();
+    } catch (e) {
+      if (e instanceof StepError) {
+        throw fail(e.message);
+      }
+      throw e;
+    }
+  };
+
+  if (!isMap(raw)) {
+    throw fail('`auth` must be a mapping with `url` and `check`');
+  }
+  guard(() => rejectUnknownKeys(raw, AUTH_KEYS, '`auth`'));
+  if (raw.url === undefined) {
+    throw fail('`auth` needs a `url`: the page where the login starts');
+  }
+  const loginUrl = url(raw.url, 'auth.url');
+
+  if (raw.check === undefined) {
+    throw fail('`auth` needs a `check`: a `visible` target or `text` that appears only when logged in');
+  }
+  const check = raw.check;
+  if (!isMap(check)) {
+    throw fail('`auth.check` must be a mapping with `visible` or `text`');
+  }
+  guard(() => rejectUnknownKeys(check, CHECK_KEYS, '`auth.check`'));
+  const conditions = ['visible', 'text'].filter((k) => check[k] !== undefined);
+  if (conditions.length !== 1) {
+    throw fail('`auth.check` needs exactly one of `visible` or `text`, to appear only when logged in');
+  }
+  const checkUrl = check.url === undefined ? loginUrl : url(check.url, 'auth.check.url');
+  const condition: Auth['check']['condition'] = guard(() =>
+    check.visible !== undefined
+      ? { kind: 'visible', target: parseTarget(check.visible, '`auth.check.visible`') }
+      : { kind: 'text', text: nonEmptyString(check.text, '`auth.check.text`') },
+  );
+
+  if (raw.state !== undefined && (typeof raw.state !== 'string' || !raw.state.trim())) {
+    throw fail('`auth.state` must be a non-empty file path');
+  }
+  const state = resolve(base, (raw.state as string | undefined) ?? DEFAULT_AUTH_STATE);
+  return { url: loginUrl, check: { url: checkUrl, condition }, state, configName };
 }

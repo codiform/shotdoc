@@ -16,7 +16,9 @@ const DEFAULTS_KEYS = ['hide', 'mask', 'maskColor'];
  */
 export function readFrontMatter(source: string, file: string): { defaults: Defaults; errors: ShotdocError[] } {
   const found = FRONT_MATTER.exec(source);
-  if (!found) return { defaults: NO_DEFAULTS, errors: [] };
+  if (!found) {
+    return { defaults: NO_DEFAULTS, errors: [] };
+  }
 
   const fail = (reason: string) => ({ defaults: NO_DEFAULTS, errors: [new ShotdocError(reason, { file })] });
   let doc: unknown;
@@ -25,14 +27,18 @@ export function readFrontMatter(source: string, file: string): { defaults: Defau
   } catch (e) {
     return fail(`the front matter is not valid YAML: ${(e as Error).message.split('\n')[0]}`);
   }
-  if (!isMap(doc) || doc.shotdoc === undefined) return { defaults: NO_DEFAULTS, errors: [] };
+  if (!isMap(doc) || doc.shotdoc === undefined) {
+    return { defaults: NO_DEFAULTS, errors: [] };
+  }
 
   const errors: ShotdocError[] = [];
   const attempt = <T>(fn: () => T): T | undefined => {
     try {
       return fn();
     } catch (e) {
-      if (!(e instanceof StepError)) throw e;
+      if (!(e instanceof StepError)) {
+        throw e;
+      }
       errors.push(new ShotdocError(e.message, { file }));
       return undefined;
     }
@@ -40,11 +46,17 @@ export function readFrontMatter(source: string, file: string): { defaults: Defau
 
   const defaults: Defaults = { hide: [], mask: [] };
   attempt(() => {
-    if (!isMap(doc.shotdoc)) throw new StepError('the front matter `shotdoc` must be a mapping');
+    if (!isMap(doc.shotdoc)) {
+      throw new StepError('the front matter `shotdoc` must be a mapping');
+    }
     rejectUnknownKeys(doc.shotdoc, SHOTDOC_KEYS, 'the front matter `shotdoc`');
     const raw = doc.shotdoc.defaults;
-    if (raw === undefined) return;
-    if (!isMap(raw)) throw new StepError('`shotdoc.defaults` must be a mapping');
+    if (raw === undefined) {
+      return;
+    }
+    if (!isMap(raw)) {
+      throw new StepError('`shotdoc.defaults` must be a mapping');
+    }
     if ('annotate' in raw) {
       const reason = '`shotdoc.defaults` does not take `annotate`: annotations are set on each screenshot';
       errors.push(new ShotdocError(reason, { file }));
@@ -57,15 +69,21 @@ export function readFrontMatter(source: string, file: string): { defaults: Defau
       ),
     );
     for (const key of ['hide', 'mask'] as const) {
-      if (raw[key] === undefined) continue;
+      if (raw[key] === undefined) {
+        continue;
+      }
       const targets = attempt(() =>
         parseTargets(asList(raw[key], `\`shotdoc.defaults.${key}\``, 'targets'), `shotdoc.defaults.${key}`),
       );
-      if (targets) defaults[key] = targets;
+      if (targets) {
+        defaults[key] = targets;
+      }
     }
     if (raw.maskColor !== undefined) {
       const colour = attempt(() => nonEmptyString(raw.maskColor, '`shotdoc.defaults.maskColor`'));
-      if (colour !== undefined) defaults.maskColor = colour;
+      if (colour !== undefined) {
+        defaults.maskColor = colour;
+      }
     }
   });
   return { defaults, errors };
@@ -79,14 +97,20 @@ export function readFrontMatter(source: string, file: string): { defaults: Defau
  */
 export function stripShotdocKey(text: string): string {
   const found = FRONT_MATTER.exec(text);
-  if (!found) return text;
+  if (!found) {
+    return text;
+  }
   const body = found[1] ?? '';
   const bodyStart = text.indexOf('\n') + 1;
   const doc = parseDocument(body);
-  if (doc.errors.length || !isYamlMap(doc.contents)) return text;
+  if (doc.errors.length || !isYamlMap(doc.contents)) {
+    return text;
+  }
   const items = doc.contents.items;
   const pair = items.find((p) => isScalar(p.key) && p.key.value === 'shotdoc');
-  if (!pair || !isScalar(pair.key) || !pair.key.range) return text;
+  if (!pair || !isScalar(pair.key) || !pair.key.range) {
+    return text;
+  }
 
   if (items.length === 1) {
     const rest = text.slice(found[0].length);

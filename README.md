@@ -61,7 +61,13 @@ baseUrl: https://demo.example.test   # context root for `goto` paths (see below)
 outDir: build                        # default: build
 viewport: { width: 1280, height: 800 }   # defaults
 deviceScaleFactor: 2                 # default
+auth:                                # optional: an app behind a login (see below)
+  url: /login
+  check: { url: /dashboard, visible: { role: heading, name: Dashboard } }
+  state: .shotdoc/auth.json          # default
 ```
+
+`auth` describes a login you do by hand with `shotdoc login`; see [Documenting an app behind a login](#documenting-an-app-behind-a-login). `url` is where the login starts. `check` is required: one `visible` target or `text` that appears only when you are logged in, on the page `check.url` (default: `url`). `state` is where the saved session goes, resolved against the config file's directory (default `.shotdoc/auth.json`).
 
 Rendering always uses locale `en-US` and timezone `UTC`.
 
@@ -289,6 +295,41 @@ Clicking returns before the page has necessarily updated. When a screenshot shou
 
 Every wait gives up after 10 seconds and the build fails with the condition named.
 
+## Documenting an app behind a login
+
+Many apps need a login, often with a second factor, and the credentials must not end up in your project. shotdoc never sees them: you log in yourself, in a real browser window, and shotdoc keeps the resulting session for later builds.
+
+Add `auth` to the configuration (see above), then:
+
+```sh
+shotdoc login guide.md      # or: shotdoc login --config shotdoc.config.yaml
+```
+
+A browser window opens at `auth.url`. Log in as you normally would, including any MFA, wait until the app has loaded, and press Enter in the terminal. shotdoc then runs the **check** and, only if it passes, saves the session. After that, `shotdoc build` starts every build from the saved session, runs the check again before the first block, and stays headless and non-interactive.
+
+### The check
+
+`check` is required, because a saved session can lapse without any error: an expired session often just shows a login page, and a build would happily screenshot it. The check loads a page (`check.url`, default `auth.url`) and waits for one thing that appears only when you are logged in, either a `visible` target or some `text`. Pick something the login page does not also show: a heading of the logged-in page, a "Sign out" link, your account menu. The HTTP status of the page is ignored, because some apps answer 404 for pages they render fine, so only what is on the page counts.
+
+`check.url` can differ from `auth.url`. Some apps show the login page even when you are logged in, but redirect you to it from a private page. Check that private page instead.
+
+### Where the session is kept
+
+The session goes to `.shotdoc/auth.json` next to the configuration file, or to `auth.state` if you set it. It holds cookies and local storage: treat it as a secret, the same as your password. The file is readable only by you, shotdoc never writes it to the output or prints its contents, and `shotdoc login` warns if git would not ignore it. Add `.shotdoc/` to your `.gitignore`. A build never changes the file. To log in again, for example as another user, run `shotdoc login` again; it replaces the file.
+
+### When the login has lapsed
+
+If the saved session is missing, unreadable, or fails the check, the build stops before any block runs, writes nothing, and exits with status 3, so a script can tell "log in again" from other failures. The message names the check and the command to run. Some identity providers end sessions within hours, so expect to run `shotdoc login` again before a build session; a saved session is not something to rely on for unattended, regular builds. `npm run build:examples` in this repository skips such an example instead of failing.
+
+### Limits
+
+- Only cookies, local storage and IndexedDB are saved. An app that keeps its login in `sessionStorage` will fail the check; that is reported rather than documented as a login page.
+- A session can expire in the middle of a build, after the check. The build then fails on whatever step first needs the page.
+- Your name and data appear in the screenshots. Use `hide` or `mask`, or [document defaults](#defaults-for-every-screenshot), for anything personal.
+- A document cannot start logged out and log in itself, or change user midway.
+
+[`examples/the-internet/`](examples/the-internet) documents a page behind a login on a public practice site: run `shotdoc login examples/the-internet/input/secure-area.md` (the page prints its username and password), then build it.
+
 ## Known limits
 
 - The timeout is fixed at 10 seconds.
@@ -296,4 +337,4 @@ Every wait gives up after 10 seconds and the build fails with the condition name
 - CSS animations and transitions are settled before each screenshot, but motion driven by script (an animation loop, a timer that changes the page) is not frozen, so a page with such motion can give different images on different builds.
 - Pixel-identical output across different machines is not guaranteed.
 - Only an image that is one colour throughout is rejected as blank. A page that is partly blank, such as an empty panel inside a populated page, is not detected.
-- Named login states, JavaScript blocks, HTML output, or caching yet.
+- A document that starts logged out, switches user, or logs in with stored credentials; JavaScript blocks, HTML output, or caching yet.

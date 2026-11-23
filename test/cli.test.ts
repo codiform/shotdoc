@@ -3,18 +3,24 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { type AuthServer, startAuthServer } from './helpers/auth-server.js';
 import { type FixtureServer, startFixtureServer } from './helpers/server.js';
 
 const root = join(import.meta.dirname, '..');
 const cli = join(root, 'dist', 'cli.js');
 let server: FixtureServer;
+let authServer: AuthServer;
 let cwd: string;
 
 beforeAll(async () => {
   execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: root, stdio: 'pipe' });
   server = await startFixtureServer();
+  authServer = await startAuthServer();
 });
-afterAll(() => server.close());
+afterAll(async () => {
+  await server.close();
+  await authServer.close();
+});
 beforeEach(() => {
   cwd = mkdtempSync(join(tmpdir(), 'shotdoc-cli-'));
   writeFileSync(join(cwd, 'shotdoc.config.yaml'), `baseUrl: ${server.url}\n`);
@@ -147,5 +153,47 @@ describe('configuration discovery and --config', () => {
     expect(r.code).toBe(2);
     expect(r.err).toMatch(message);
     expect(r.err).toContain('Usage: shotdoc build');
+  });
+});
+
+describe('login', () => {
+  const withAuth = () =>
+    write(
+      'shotdoc.config.yaml',
+      `baseUrl: ${authServer.url}\nauth:\n  url: /login\n  check: {url: /secure, visible: {role: heading, name: Secure Area}}\n`,
+    );
+  const SECURE = '```shotdoc\n- goto: /secure\n- screenshot: {name: s}\n```\n';
+
+  test('argument errors exit 2', async () => {
+    expect((await run(['login', 'a.md', 'b.md'])).code).toBe(2);
+    expect((await run(['login', '--colour'])).code).toBe(2);
+    expect((await run(['login', '--config'])).code).toBe(2);
+  });
+
+  test('with no auth configured it says so', async () => {
+    const r = await run(['login']);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/no login is configured/);
+  });
+
+  test('without an interactive terminal it fails before opening a browser', async () => {
+    withAuth();
+    const r = await run(['login']);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/needs an interactive terminal/);
+  });
+
+  test('a build with no saved login exits 3, says to log in and writes nothing', async () => {
+    withAuth();
+    write('g.md', SECURE);
+    const r = await run(['build', 'g.md']);
+    expect(r.code).toBe(3);
+    expect(r.err).toMatch(/no saved login at .*auth\.json\. Run `shotdoc login --config shotdoc\.config\.yaml`/);
+    expect(existsSync(join(cwd, 'build', 'g.md'))).toBe(false);
+  });
+
+  test('the usage lists the login command', async () => {
+    expect((await run(['--help'])).code).toBe(0);
+    expect((await run([])).err).toMatch(/shotdoc login/);
   });
 });

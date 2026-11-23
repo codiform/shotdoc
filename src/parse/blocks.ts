@@ -25,10 +25,14 @@ export function findBlocks(source: string, file: string): { blocks: RawBlock[]; 
   const errors: ShotdocError[] = [];
 
   for (const token of md.parse(source, {})) {
-    if (token.type !== 'fence' || !token.map) continue;
+    if (token.type !== 'fence' || !token.map) {
+      continue;
+    }
 
     const [first, ...attrs] = token.info.trim().split(/\s+/);
-    if (first !== 'shotdoc') continue;
+    if (first !== 'shotdoc') {
+      continue;
+    }
 
     const [start, end] = token.map;
     const line = start + 1;
@@ -55,7 +59,9 @@ export function findBlocks(source: string, file: string): { blocks: RawBlock[]; 
       );
     }
 
-    if (ok) blocks.push({ line, startLine: start, endLine: end, body: token.content });
+    if (ok) {
+      blocks.push({ line, startLine: start, endLine: end, body: token.content });
+    }
   }
 
   return { blocks, errors };

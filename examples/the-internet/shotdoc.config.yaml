@@ -1,0 +1,9 @@
+baseUrl: https://the-internet.herokuapp.com   # a public practice site for browser automation
+outDir: output
+deviceScaleFactor: 1
+auth:
+  url: /login
+  # /secure sends you to /login when you are not logged in, and the login page shows no "Secure Area" heading.
+  check:
+    url: /secure
+    visible: 'h2:has-text("Secure Area")'

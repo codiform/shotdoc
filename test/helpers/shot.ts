@@ -22,7 +22,9 @@ export async function shootDocument(
     const result = await runDocument(blocks, { config, file: 'doc.md', stageDir });
     const out: Record<string, Image> = {};
     for (const shots of result.values()) {
-      for (const s of shots) out[s.name] = PNG.sync.read(readFileSync(s.path));
+      for (const s of shots) {
+        out[s.name] = PNG.sync.read(readFileSync(s.path));
+      }
     }
     return out;
   } finally {
@@ -41,7 +43,9 @@ export function pixel(img: Image, x: number, y: number): [number, number, number
 
 export function everyPixelIs(img: Image, rgb: [number, number, number]): boolean {
   for (let i = 0; i < img.data.length; i += 4) {
-    if (img.data[i] !== rgb[0] || img.data[i + 1] !== rgb[1] || img.data[i + 2] !== rgb[2]) return false;
+    if (img.data[i] !== rgb[0] || img.data[i + 1] !== rgb[1] || img.data[i + 2] !== rgb[2]) {
+      return false;
+    }
   }
   return true;
 }
@@ -62,7 +66,9 @@ export function solidWithBorder(
       const onRing = x < px || y < px || x >= img.width - px || y >= img.height - px;
       const want = onRing ? border : fill;
       const i = (img.width * y + x) * 4;
-      if (img.data[i] !== want[0] || img.data[i + 1] !== want[1] || img.data[i + 2] !== want[2]) return false;
+      if (img.data[i] !== want[0] || img.data[i + 1] !== want[1] || img.data[i + 2] !== want[2]) {
+        return false;
+      }
     }
   }
   return true;
@@ -72,7 +78,9 @@ export function solidWithBorder(
 export function countPixels(img: Image, rgb: [number, number, number]): number {
   let n = 0;
   for (let i = 0; i < img.data.length; i += 4) {
-    if (img.data[i] === rgb[0] && img.data[i + 1] === rgb[1] && img.data[i + 2] === rgb[2]) n++;
+    if (img.data[i] === rgb[0] && img.data[i + 1] === rgb[1] && img.data[i + 2] === rgb[2]) {
+      n++;
+    }
   }
   return n;
 }

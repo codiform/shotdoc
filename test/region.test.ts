@@ -30,7 +30,9 @@ test('clamps at the far edges too', () => {
 
 test('fractional width 82.39 is rounded outward to whole pixels', () => {
   const r = region([{ x: 40.3, y: 10, width: 82.39, height: 30 }], 16, 1280, 800);
-  for (const v of Object.values(r)) expect(Number.isInteger(v)).toBe(true);
+  for (const v of Object.values(r)) {
+    expect(Number.isInteger(v)).toBe(true);
+  }
   expect(r.width).toBeGreaterThanOrEqual(114.39);
   expect(r.width).toBeLessThanOrEqual(116);
   // outward: covers the padded element completely

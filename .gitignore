@@ -1,6 +1,7 @@
 node_modules/
 dist/
 build/
+.shotdoc/
 /.editorconfig
 /.idea
 .claude/commands/opsx

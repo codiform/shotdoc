@@ -24,7 +24,9 @@ export function planAnnotations(list: Annotation[]): PlannedAnnotation[] {
       color: a.color ?? DEFAULT_ANNOTATION_COLOUR,
       from: a.from ?? DEFAULT_ARROW_SIDE,
     };
-    if (a.kind === 'badge') planned.number = ++badges;
+    if (a.kind === 'badge') {
+      planned.number = ++badges;
+    }
     return planned;
   });
 }
@@ -107,7 +109,9 @@ function drawInPage(el: Element, a: { kind: AnnotationKind; color: string; from:
     place(svg, pos.x, pos.y, aw, ah);
     svg.style.overflow = 'visible';
     const g = document.createElementNS(ns, 'g');
-    if (transform) g.setAttribute('transform', transform);
+    if (transform) {
+      g.setAttribute('transform', transform);
+    }
     const arrow = document.createElementNS(ns, 'polygon');
     arrow.setAttribute('points', '0,15 50,15 50,0 80,20 50,40 50,25 0,25');
     arrow.setAttribute('fill', a.color);
