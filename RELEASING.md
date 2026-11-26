@@ -27,15 +27,21 @@ shotdoc is published to npm as `shotdoc`. It stays below 1.0.0 until the project
 
 Publishing needs an npm account that can publish `shotdoc`, with two-factor authentication.
 
-1. Set the version. For the first release, `package.json` already says `0.1.0`. After that, `npm version patch` (or `minor`) updates `package.json` and creates a `vX.Y.Z` commit and tag.
+1. Set the version. For the first release, `package.json` already says `0.1.0`. After that, `npm version patch` (or `minor`) updates `package.json` and creates a `vX.Y.Z` commit and tag, both only on your machine until you push them (step 3).
 2. Publish:
 
    ```sh
    npm publish
    ```
 
-   npm asks for a one-time password. `prepack` compiles first, so the package is never stale, and `prepublishOnly` runs the tests, so a failing test stops the publish before anything is uploaded.
-3. Tag the release if `npm version` did not, and push it:
+   npm asks for a one-time password. It runs `prepublishOnly` (the tests) first, so a failing test stops the publish before anything is uploaded, and then `prepack`, which compiles, so the package is never stale.
+3. Make sure the published commit and its tag are on GitHub. After `npm version`, push both:
+
+   ```sh
+   git push origin main --follow-tags
+   ```
+
+   If `main` does not accept direct pushes, push the version commit through a pull request and tag the commit that was published. For the first release, `npm version` was not used, so tag it yourself:
 
    ```sh
    git tag v0.1.0

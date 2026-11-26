@@ -15,7 +15,7 @@ npm install --save-dev shotdoc
 npx playwright install chromium
 ```
 
-Install the browser from the same project as shotdoc, so it matches the Playwright version shotdoc uses. Run it as `npx shotdoc`; the examples below write plain `shotdoc`.
+Run the second command from the same project, so it installs the browser for the Playwright version shotdoc uses. With npm that is what it does. With pnpm or Yarn Plug'n'Play it may not, and can fetch a browser for a different Playwright version; if shotdoc still says Chromium is not installed, see [issue 30](https://github.com/codiform/shotdoc/issues/30). Run it as `npx shotdoc`; the examples below write plain `shotdoc`.
 
 ## Example
 

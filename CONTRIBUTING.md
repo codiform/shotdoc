@@ -23,7 +23,7 @@ The tests drive a real browser, so the Chromium install is required.
 | `npm run build:examples` | Compiles, then builds every `examples/*/input/*.md` |
 | `npm run smoke:package` | Packs the package, installs it into an empty project, and runs the installed `shotdoc` |
 
-Before opening a pull request, run `npm run format`, `npm run lint`, `npm run typecheck` and `npm test`.
+Before opening a pull request, run `npm run format`, `npm run lint`, `npm run typecheck` and `npm test`. If you changed `package.json`, `files` or anything that affects what is published, also run `npm run smoke:package`; CI runs it on every pull request.
 
 `build:examples` carries on past a failure and exits non-zero if any example failed. The examples drive live third-party sites, so a changed image or a failure there can mean the site has drifted. An example that needs a saved login nobody has saved is skipped, not failed.
 
