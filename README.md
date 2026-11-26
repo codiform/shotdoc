@@ -4,6 +4,19 @@ Write documentation in Markdown, drive a real browser from fenced `shotdoc` bloc
 
 The source file stays valid Markdown. Without building, a `shotdoc` block just renders as a code block, so the source is still readable.
 
+> **Early release.** shotdoc is usable, but it is not yet stable: it is below 1.0, and a minor version may change or break things. Pin the version you test with.
+
+## Install
+
+Requires Node.js 22 or later and the Chromium browser used by Playwright:
+
+```sh
+npm install --save-dev shotdoc
+npx playwright install chromium
+```
+
+Install the browser from the same project as shotdoc, so it matches the Playwright version shotdoc uses. Run it as `npx shotdoc`; the examples below write plain `shotdoc`.
+
 ## Example
 
 [`examples/todomvc/`](examples/todomvc/) documents the Playwright TodoMVC demo app:
@@ -12,24 +25,13 @@ The source file stays valid Markdown. Without building, a `shotdoc` block just r
 - [`output/todo-mvc.md`](examples/todomvc/output/todo-mvc.md) is what `shotdoc build` produces, with its screenshots in [`output/images/`](examples/todomvc/output/images/todo-mvc/).
 - [`shotdoc.config.yaml`](examples/todomvc/shotdoc.config.yaml) sets the base URL and output directory.
 
-To rebuild it, run this from the project root. The build finds the example's config file above the source and writes the output beside it:
+To rebuild it from a clone of the repository, run this from the project root. The build finds the example's config file above the source and writes the output beside it:
 
 ```sh
 shotdoc build examples/todomvc/input/todo-mvc.md
 ```
 
 [`examples/datasette/`](examples/datasette/) documents a table in Datasette's public demo and shows the annotation and masking features: an arrow beside an open menu, numbered badges on a form, and the footer's changing query time masked. Rebuild it the same way, with `shotdoc build examples/datasette/input/datasette.md`.
-
-To rebuild every example at once, run `npm run build:examples` (it compiles first, then builds each `examples/*/input/*.md`). It carries on past a failure and exits non-zero if any example failed, and since the examples drive live third-party sites, a changed image or a failure there can mean the site has drifted.
-
-## Prerequisites
-
-- Node.js 20 or later
-- The Chromium browser used by Playwright:
-
-  ```sh
-  npx playwright install chromium
-  ```
 
 ## Usage
 
@@ -99,15 +101,15 @@ All blocks in a document share one browser session: a later block continues on t
 
 | Step | Form |
 | --- | --- |
-| `goto` | `- goto: /path` or a full URL |
-| `click` | `- click: <target>` |
-| `dblclick` | `- dblclick: <target>` |
-| `hover` | `- hover: <target>` |
-| `unhover` | `- unhover:` (no value) |
-| `fill` | `- fill: {target: <target>, value: "text"}` |
-| `press` | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
-| `wait` | `- wait: <condition>` (see below) |
-| `screenshot` | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], defaults: false, padding: 16, alt: "..."}` |
+| [`goto`](#base-url-and-goto) | `- goto: /path` or a full URL |
+| [`click`](#targets) | `- click: <target>` |
+| [`dblclick`](#double-clicking-and-hovering) | `- dblclick: <target>` |
+| [`hover`](#double-clicking-and-hovering) | `- hover: <target>` |
+| [`unhover`](#double-clicking-and-hovering) | `- unhover:` (no value) |
+| [`fill`](#targets) | `- fill: {target: <target>, value: "text"}` |
+| [`press`](#pressing-keys) | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
+| [`wait`](#waiting) | `- wait: <condition>` (see below) |
+| [`screenshot`](#screenshots) | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], defaults: false, padding: 16, alt: "..."}` |
 
 ### Targets
 
@@ -319,7 +321,7 @@ The session goes to `.shotdoc/auth.json` next to the configuration file, or to `
 
 ### When the login has lapsed
 
-If the saved session is missing, unreadable, or fails the check, the build stops before any block runs, writes nothing, and exits with status 3, so a script can tell "log in again" from other failures. The message names the check and the command to run. Some identity providers end sessions within hours, so expect to run `shotdoc login` again before a build session; a saved session is not something to rely on for unattended, regular builds. `npm run build:examples` in this repository skips such an example instead of failing.
+If the saved session is missing, unreadable, or fails the check, the build stops before any block runs, writes nothing, and exits with status 3, so a script can tell "log in again" from other failures. The message names the check and the command to run. Some identity providers end sessions within hours, so expect to run `shotdoc login` again before a build session; a saved session is not something to rely on for unattended, regular builds.
 
 ### Limits
 
@@ -328,7 +330,7 @@ If the saved session is missing, unreadable, or fails the check, the build stops
 - Your name and data appear in the screenshots. Use `hide` or `mask`, or [document defaults](#defaults-for-every-screenshot), for anything personal.
 - A document cannot start logged out and log in itself, or change user midway.
 
-[`examples/the-internet/`](examples/the-internet) documents a page behind a login on a public practice site: run `shotdoc login examples/the-internet/input/secure-area.md` (the page prints its username and password), then build it.
+[`examples/the-internet/`](examples/the-internet) documents a page behind a login on a public practice site. In a clone of the repository, run `shotdoc login examples/the-internet/input/secure-area.md` (the page prints its username and password), then build it.
 
 ## Known limits
 
@@ -338,3 +340,7 @@ If the saved session is missing, unreadable, or fails the check, the build stops
 - Pixel-identical output across different machines is not guaranteed.
 - Only an image that is one colour throughout is rejected as blank. A page that is partly blank, such as an empty panel inside a populated page, is not detected.
 - A document that starts logged out, switches user, or logs in with stored credentials; JavaScript blocks, HTML output, or caching yet.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to set up, test and change shotdoc, and the [MIT license](LICENSE) for how you can use it.

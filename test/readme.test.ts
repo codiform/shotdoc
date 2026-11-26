@@ -51,3 +51,45 @@ test('the README documents the login configuration and command', () => {
     expect(readme).toContain(word);
   }
 });
+
+test('every step in the steps table links to a heading in the README', () => {
+  const headings = new Set(
+    [...readme.matchAll(/^#+ (.*)$/gm)].map((m) =>
+      m[1]!
+        .toLowerCase()
+        .replace(/[^a-z0-9 -]/g, '')
+        .replaceAll(' ', '-'),
+    ),
+  );
+  const table = readme.slice(readme.indexOf('### Steps'), readme.indexOf('### Targets'));
+  const rows = [...table.matchAll(/^\| \[`(\w+)`\]\(#([^)]+)\) \|/gm)];
+  expect(rows.map((m) => m[1])).toEqual([
+    'goto',
+    'click',
+    'dblclick',
+    'hover',
+    'unhover',
+    'fill',
+    'press',
+    'wait',
+    'screenshot',
+  ]);
+  for (const [, step, anchor] of rows) {
+    expect(headings.has(anchor!), `${step} links to #${anchor}`).toBe(true);
+  }
+});
+
+test('the README opens with the release status and an Install section with the Node version and browser', () => {
+  const top = readme.slice(0, readme.indexOf('## Example'));
+  expect(top).toMatch(/Early release/);
+  expect(top).toMatch(/not yet stable/);
+  expect(top).toContain('## Install');
+  expect(top).toContain('Node.js 22 or later');
+  expect(top).toContain('npm install --save-dev shotdoc');
+  expect(top).toContain('npx playwright install chromium');
+});
+
+test('the README has nothing that only makes sense inside the repository checkout', () => {
+  expect(readme).not.toContain('build:examples');
+  expect(readme).not.toContain('](openspec/');
+});
