@@ -44,7 +44,7 @@ The package SHALL be named `shotdoc`, SHALL declare the MIT license and include 
 - **THEN** it says the release is early and not yet stable
 
 ### Requirement: Supported Node versions
-The package SHALL declare Node 22 or later and SHALL be tested on Node 22, 24 and 26. The README SHALL state the required Node version and that the Chromium browser used by Playwright must be installed separately, with the command.
+The package SHALL declare Node 22 or later and SHALL be tested on Node 22, 24 and 26. The README SHALL state the required Node version and that the Chromium browser used by Playwright must be installed separately, with the command that installs it, `shotdoc install`.
 
 #### Scenario: Declared floor
 - **WHEN** the package is packed
@@ -52,7 +52,7 @@ The package SHALL declare Node 22 or later and SHALL be tested on Node 22, 24 an
 
 #### Scenario: README prerequisites
 - **WHEN** a reader opens the README's installation instructions
-- **THEN** they list Node 22 or later and `npx playwright install chromium`
+- **THEN** they list Node 22 or later and `shotdoc install`
 
 ### Requirement: Publishing builds first
 Packing or publishing the package SHALL first compile the source, and publishing SHALL also run the tests, so a stale or untested build cannot be published.

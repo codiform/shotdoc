@@ -3,6 +3,7 @@ import { dirname, relative } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { build } from './build.js';
 import { LoginRequiredError, ShotdocError, ShotdocErrors } from './errors.js';
+import { install } from './install.js';
 import { login } from './login.js';
 
 /** Exit statuses. */
@@ -15,6 +16,7 @@ const EXIT_LOGIN_REQUIRED = 3;
 
 const USAGE = `Usage: shotdoc build [--config <file>] <file.md>
        shotdoc login [--config <file>] [<file.md>]
+       shotdoc install [<options>] [<browser>...]
 
 Runs the shotdoc blocks in <file.md> and writes the built Markdown and screenshots
 to the output directory (default: build/).
@@ -24,7 +26,11 @@ upward, otherwise the one in the current directory. --config <file> names a file
 
 shotdoc login opens a browser at the configuration's \`auth.url\` so you can log in by hand, then
 saves the session for builds. A build exits with status 3 when the saved login is missing or no
-longer valid.`;
+longer valid.
+
+shotdoc install installs the browser shotdoc drives (Chromium unless you name another) using the
+Playwright that shotdoc itself uses, so the browser matches. Options go to Playwright's installer:
+shotdoc install --with-deps, shotdoc install --dry-run.`;
 
 interface LoginArgs {
   file?: string;
@@ -118,6 +124,13 @@ export async function main(argv: string[]): Promise<number> {
   }
   if (command === 'login') {
     return runLoginCommand(rest);
+  }
+  if (command === 'install') {
+    try {
+      return await install(rest);
+    } catch (e) {
+      return report(e);
+    }
   }
   if (command !== 'build') {
     console.error(USAGE);
