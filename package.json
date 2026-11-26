@@ -2,6 +2,23 @@
   "name": "shotdoc",
   "version": "0.1.0",
   "description": "Build documentation from Markdown with browser-driving blocks and screenshots",
+  "keywords": [
+    "documentation",
+    "screenshots",
+    "playwright",
+    "markdown",
+    "docs-as-code"
+  ],
+  "license": "MIT",
+  "author": "Codiform",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codiform/shotdoc.git"
+  },
+  "homepage": "https://github.com/codiform/shotdoc#readme",
+  "bugs": {
+    "url": "https://github.com/codiform/shotdoc/issues"
+  },
   "type": "module",
   "bin": {
     "shotdoc": "dist/cli.js"
@@ -10,11 +27,14 @@
     "dist"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test",
     "build": "tsc -p tsconfig.build.json",
     "build:examples": "npm run build && node scripts/build-examples.mjs",
+    "smoke:package": "node scripts/smoke-package.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "biome check",
