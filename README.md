@@ -12,10 +12,12 @@ Requires Node.js 22 or later and the Chromium browser used by Playwright:
 
 ```sh
 npm install --save-dev shotdoc
-npx playwright install chromium
+npx shotdoc install
 ```
 
-Run the second command from the same project, so it installs the browser for the Playwright version shotdoc uses. With npm that is what it does. With pnpm or Yarn Plug'n'Play it may not, and can fetch a browser for a different Playwright version; if shotdoc still says Chromium is not installed, see [issue 30](https://github.com/codiform/shotdoc/issues/30). Run it as `npx shotdoc`; the examples below write plain `shotdoc`.
+`shotdoc install` installs the browser with the Playwright that shotdoc itself uses, so it always matches, wherever you run it from. Its options go to Playwright's installer: `npx shotdoc install --with-deps` also installs the system packages Chromium needs on Linux. Run shotdoc as `npx shotdoc`; the examples below write plain `shotdoc`. To try it without adding it to a project, run `npx shotdoc install` and then `npx shotdoc build guide.md`.
+
+npm is the tested way to install shotdoc. Other package managers and runtimes should work but are untested: if one gives you trouble, please report it as an issue.
 
 ## Example
 

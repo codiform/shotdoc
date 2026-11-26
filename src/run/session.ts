@@ -1,6 +1,7 @@
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright';
 import type { Config } from '../config.js';
 import { ShotdocError } from '../errors.js';
+import { playwrightInfo } from '../install.js';
 
 /** Fixed timeout for every waiting action, in milliseconds. */
 export const TIMEOUT_MS = 10_000;
@@ -31,9 +32,7 @@ export class Session {
     } catch (e) {
       const msg = (e as Error).message;
       if (/Executable doesn't exist/i.test(msg)) {
-        throw new ShotdocError(
-          'the Chromium browser used by shotdoc is not installed. Install it with: npx playwright install chromium',
-        );
+        throw new ShotdocError(missingBrowserMessage(msg));
       }
       throw new ShotdocError(`could not launch the browser: ${msg.split('\n')[0]}`);
     }
@@ -73,4 +72,23 @@ export class Session {
   async close(): Promise<void> {
     await this.browser.close();
   }
+}
+
+/**
+ * Explains a missing browser: where Playwright looked (its message has the path, revision included), which
+ * Playwright shotdoc uses, and why a browser from another version does not count.
+ */
+function missingBrowserMessage(launchError: string): string {
+  const looked = /Executable doesn't exist at (.+)/i.exec(launchError)?.[1]?.trim();
+  let version: string | undefined;
+  try {
+    version = playwrightInfo().version;
+  } catch {
+    // The message is still useful without the version.
+  }
+  return [
+    `the browser shotdoc needs is not installed${looked ? ` (looked for ${looked})` : ''}.`,
+    `shotdoc uses Playwright${version ? ` ${version}` : ''}, which only runs the browser build it was released with; a browser installed by a different Playwright version does not count.`,
+    'Install the matching browser with: shotdoc install',
+  ].join('\n');
 }

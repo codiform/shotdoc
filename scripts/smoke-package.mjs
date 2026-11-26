@@ -52,6 +52,14 @@ try {
     help.output,
   );
 
+  // The installed copy finds its own Playwright's installer. A dry run downloads nothing.
+  const installDryRun = shotdoc('install', '--dry-run', 'chromium');
+  must(
+    'shotdoc install --dry-run chromium finds the installer and lists where the browser goes',
+    installDryRun.status === 0 && installDryRun.output.includes('Install location'),
+    `status ${installDryRun.status}\n${installDryRun.output}`,
+  );
+
   writeFileSync(join(project, 'bad.md'), `${FENCE}shotdoc\n- frobnicate: x\n${FENCE}\n`);
   const bad = shotdoc('build', 'bad.md');
   must(

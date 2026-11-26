@@ -27,11 +27,15 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(cwd, { recursive: true, force: true }));
 
-function run(args: string[], env: Record<string, string> = {}): Promise<{ code: number; out: string; err: string }> {
+function run(
+  args: string[],
+  env: Record<string, string> = {},
+  dir = cwd,
+): Promise<{ code: number; out: string; err: string }> {
   return new Promise((resolve) => {
     // stdin is closed: a build must never wait for input.
     const p = spawn('node', [cli, ...args], {
-      cwd,
+      cwd: dir,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -83,13 +87,18 @@ test('usage errors exit 2', async () => {
   expect((await run(['--help'])).code).toBe(0);
 });
 
-test('missing Chromium gives the install command', async () => {
+test('a missing browser says where it looked, which Playwright, and how to install the right one', async () => {
   write('g.md', GOOD);
   const empty = mkdtempSync(join(tmpdir(), 'shotdoc-nobrowser-'));
   try {
     const r = await run(['build', 'g.md'], { PLAYWRIGHT_BROWSERS_PATH: empty });
     expect(r.code).toBe(1);
-    expect(r.err).toContain('npx playwright install chromium');
+    expect(r.err).toContain('is not installed');
+    expect(r.err).toContain(`looked for ${empty}`);
+    expect(r.err).toMatch(/uses Playwright \d+\.\d+\.\d+/);
+    expect(r.err).toContain('a browser installed by a different Playwright version does not count');
+    expect(r.err).toContain('shotdoc install');
+    expect(r.err).not.toContain('npx playwright');
     expect(existsSync(join(cwd, 'build', 'g.md'))).toBe(false);
   } finally {
     rmSync(empty, { recursive: true, force: true });
@@ -195,5 +204,57 @@ describe('login', () => {
   test('the usage lists the login command', async () => {
     expect((await run(['--help'])).code).toBe(0);
     expect((await run([])).err).toMatch(/shotdoc login/);
+  });
+});
+
+describe('shotdoc install', () => {
+  test('passes its arguments to Playwright: a dry run lists where the browser goes and downloads nothing', async () => {
+    const r = await run(['install', '--dry-run', 'chromium']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('Install location');
+    expect(r.out).toContain('chromium');
+  });
+
+  test('installs Chromium when no browser is named, and only Chromium', async () => {
+    const r = await run(['install', '--dry-run']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('chromium');
+    expect(r.out).not.toMatch(/firefox|webkit/i);
+  });
+
+  test('installs the browser that is named', async () => {
+    const r = await run(['install', '--dry-run', 'firefox']);
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/firefox/i);
+  });
+
+  test('needs no document or configuration file', async () => {
+    const empty = mkdtempSync(join(tmpdir(), 'shotdoc-install-'));
+    try {
+      expect((await run(['install', '--dry-run', 'chromium'], {}, empty)).code).toBe(0);
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+
+  test("uses shotdoc's own Playwright, not one in the directory it is run from", async () => {
+    const other = mkdtempSync(join(tmpdir(), 'shotdoc-other-playwright-'));
+    try {
+      // A different Playwright in this directory: if it were used, its installer would exit 42.
+      const pkg = join(other, 'node_modules', 'playwright');
+      mkdirSync(pkg, { recursive: true });
+      writeFileSync(join(pkg, 'package.json'), '{"name":"playwright","version":"0.0.1","bin":{"playwright":"cli.js"}}');
+      writeFileSync(join(pkg, 'cli.js'), 'process.exit(42);\n');
+      const r = await run(['install', '--dry-run', 'chromium'], {}, other);
+      expect(r.code).toBe(0);
+      expect(r.out).toContain('Install location');
+    } finally {
+      rmSync(other, { recursive: true, force: true });
+    }
+  });
+
+  test("exits non-zero when Playwright's installer fails", async () => {
+    const r = await run(['install', '--no-such-option']);
+    expect(r.code).not.toBe(0);
   });
 });

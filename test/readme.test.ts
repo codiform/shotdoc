@@ -19,7 +19,7 @@ test('every shotdoc example in the README is valid', () => {
 });
 
 test('the README documents the prerequisite and every configuration key', () => {
-  expect(readme).toContain('npx playwright install chromium');
+  expect(readme).toContain('shotdoc install');
   for (const key of ['baseUrl', 'outDir', 'viewport', 'deviceScaleFactor']) {
     expect(readme).toContain(key);
   }
@@ -86,7 +86,8 @@ test('the README opens with the release status and an Install section with the N
   expect(top).toContain('## Install');
   expect(top).toContain('Node.js 22 or later');
   expect(top).toContain('npm install --save-dev shotdoc');
-  expect(top).toContain('npx playwright install chromium');
+  expect(top).toContain('npx shotdoc install');
+  expect(top).not.toContain('npx playwright install');
 });
 
 test('the README has nothing that only makes sense inside the repository checkout', () => {
