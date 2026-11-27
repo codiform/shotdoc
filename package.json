@@ -1,6 +1,6 @@
 {
   "name": "shotdoc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build documentation from Markdown with browser-driving blocks and screenshots",
   "keywords": [
     "documentation",
