@@ -19,9 +19,9 @@ const run = async (options: string, target = '#panel', padding = 0) => {
   const out = await shoot(server.url, `- goto: /trim.html\n- screenshot: ${shot}`, { deviceScaleFactor: 1 });
   return out.a!;
 };
-const failure = async (options: string): Promise<string> => {
+const failure = async (options: string, target?: string, padding?: number): Promise<string> => {
   try {
-    await run(options);
+    await run(options, target, padding);
   } catch (e) {
     return (e as Error).message;
   }
@@ -99,5 +99,22 @@ describe('a trim that leaves nothing fails', () => {
 
   test('even when an included element would give the image some area', async () => {
     expect(await failure('trim: {right: 700}, include: ["#popup"]')).toMatch(/trim leaves nothing/);
+  });
+});
+
+// #drawer is 400x100 at -300,520, so only its rightmost 100px are on the page.
+describe('a trim that leaves only what is off the page fails', () => {
+  test.each([0, 16])('with padding %i', async (padding) => {
+    expect(await failure('trim: {right: 305}', '#drawer', padding)).toMatch(
+      /screenshot "a": trim leaves none of the target css=#drawer on the page/,
+    );
+  });
+
+  test('padding does not rescue a remainder that ends just off the page', async () => {
+    expect(await failure('trim: {right: 105}', '#drawer', 16)).toMatch(/trim leaves none of the target/);
+  });
+
+  test('a remainder partly on the page is captured', async () => {
+    expect(size(await run('trim: {right: 50}', '#drawer'))).toEqual([50, 100]);
   });
 });

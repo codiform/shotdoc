@@ -37,7 +37,7 @@ A screenshot's `trim` SHALL move each named side of the target's area inward by 
 - **THEN** the image extends 16 CSS pixels to the right of the cut
 
 ### Requirement: A trim must leave part of the target
-When the trim would leave the target no width or no height, the step SHALL fail, naming the screenshot and the target's size, and no image SHALL be kept.
+When the trim would leave the target no width or no height, the step SHALL fail, naming the screenshot and the target's size. When what is left of the target is wholly off the page, the step SHALL fail, naming the screenshot and the target. In either case no image SHALL be kept.
 
 #### Scenario: Trim wider than the target
 - **WHEN** a 600 CSS pixel wide target is captured with `trim: {right: 700}`
@@ -46,6 +46,10 @@ When the trim would leave the target no width or no height, the step SHALL fail,
 #### Scenario: Opposite sides overlap
 - **WHEN** a screenshot has `trim: {top: "60%", bottom: "50%"}`
 - **THEN** the step fails in the same way
+
+#### Scenario: Only an off-page part is left
+- **WHEN** a target hangs off the left edge of the page and the trim leaves only the part that is off it
+- **THEN** the step fails, the message says the trim leaves none of the target on the page, and no image is written, whatever the padding
 
 ## MODIFIED Requirements
 

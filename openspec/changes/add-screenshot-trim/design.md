@@ -24,6 +24,8 @@
 
 **"Nothing left" is checked at capture time**, for pixels and percentages alike, since pixel amounts can only be judged against the measured box. It is checked even when an include would give the region some area, because it almost certainly means the amount is wrong. The check applies on both capture paths.
 
+**What is left must be on the page.** A target can hang off the left or top edge, and a trim can keep only that part. The region would then be empty, or hold nothing but padding, so this fails too. A remainder partly on the page is captured, cut at the page edge as usual.
+
 **No change to the blank check.** It runs on the final image, so a trim that leaves only solid colour fails as any blank screenshot does.
 
 ## Risks / Trade-offs
