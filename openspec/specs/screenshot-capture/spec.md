@@ -330,7 +330,7 @@ A screenshot's `trim` SHALL move each named side of the target's area inward by 
 - **THEN** the image extends 16 CSS pixels to the right of the cut
 
 ### Requirement: A trim must leave part of the target
-When the trim would leave the target no width or no height, the step SHALL fail, naming the screenshot and the target's size. When what is left of the target is wholly off the page, the step SHALL fail, naming the screenshot and the target. In either case no image SHALL be kept.
+When the trim would leave the target no width or no height, the step SHALL fail, naming the screenshot and the target's size. A width or height under a hundredth of a CSS pixel counts as none. When what is left of the target is wholly off the page, the step SHALL fail, naming the screenshot and the target. In either case no image SHALL be kept.
 
 #### Scenario: Trim wider than the target
 - **WHEN** a 600 CSS pixel wide target is captured with `trim: {right: 700}`
