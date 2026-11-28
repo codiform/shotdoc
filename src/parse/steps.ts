@@ -11,6 +11,9 @@ import {
   NO_DEFAULTS,
   type Step,
   type Target,
+  TRIM_SIDES,
+  type Trim,
+  type TrimAmount,
   type WaitCondition,
 } from './types.js';
 
@@ -26,6 +29,7 @@ const SCREENSHOT_KEYS = [
   'name',
   'target',
   'include',
+  'trim',
   'hide',
   'mask',
   'maskColor',
@@ -241,6 +245,36 @@ function parseAnnotation(v: unknown, i: number): Annotation {
   return out;
 }
 
+const PERCENT_RE = /^(\d+(?:\.\d+)?)%$/;
+
+function parseTrimAmount(v: unknown, side: string): TrimAmount {
+  if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+    return { px: v };
+  }
+  const percent = typeof v === 'string' ? PERCENT_RE.exec(v) : null;
+  if (percent && Number(percent[1]) < 100) {
+    return { percent: Number(percent[1]) };
+  }
+  return bad(
+    `screenshot \`trim.${side}\` must be CSS pixels (a non-negative number, such as 40) or a percentage below 100 (such as "25%")`,
+  );
+}
+
+function parseTrim(v: unknown): Trim {
+  const sides = TRIM_SIDES.join(', ');
+  if (!isMap(v) || Object.keys(v).length === 0) {
+    return bad(`screenshot \`trim\` must be a mapping with at least one of: ${sides}`);
+  }
+  rejectUnknownKeys(v, TRIM_SIDES, 'screenshot `trim`');
+  const out: Trim = {};
+  for (const side of TRIM_SIDES) {
+    if (v[side] !== undefined) {
+      out[side] = parseTrimAmount(v[side], side);
+    }
+  }
+  return out;
+}
+
 type ScreenshotFields = Omit<Extract<Step, { kind: 'screenshot' }>, 'n' | 'kind'>;
 
 function parseScreenshotName(v: Record<string, unknown>): string {
@@ -277,6 +311,12 @@ function parseScreenshot(v: unknown, ctx: StepContext): ScreenshotFields {
       bad('screenshot `include` requires a `target`');
     }
     out.include = parseTargets(list, 'include');
+  }
+  if (v.trim !== undefined) {
+    if (out.target === undefined) {
+      bad('screenshot `trim` requires a `target`');
+    }
+    out.trim = parseTrim(v.trim);
   }
   for (const key of ['hide', 'mask'] as const) {
     if (v[key] !== undefined) {

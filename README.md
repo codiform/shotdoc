@@ -111,7 +111,7 @@ All blocks in a document share one browser session: a later block continues on t
 | [`fill`](#targets) | `- fill: {target: <target>, value: "text"}` |
 | [`press`](#pressing-keys) | `- press: Enter` or `- press: {key: Escape, target: <target>}` |
 | [`wait`](#waiting) | `- wait: <condition>` (see below) |
-| [`screenshot`](#screenshots) | `- screenshot: {name: ..., target: ..., include: [...], hide: [...], mask: [...], maskColor: "#555", annotate: [...], defaults: false, padding: 16, alt: "..."}` |
+| [`screenshot`](#screenshots) | `- screenshot: {name: ..., target: ..., include: [...], trim: {...}, hide: [...], mask: [...], maskColor: "#555", annotate: [...], defaults: false, padding: 16, alt: "..."}` |
 
 ### Targets
 
@@ -200,6 +200,21 @@ Without a `target`, the screenshot is the current viewport. With a `target`, it 
 `name` uses letters, digits, hyphens, and underscores and must be unique in the document. `alt` becomes the image's alt text (default: the name).
 
 Before capturing, shotdoc waits for the target and every included element to be visible and to stop moving. It does not move the viewport size; it scrolls instead. Only a region larger than the viewport is captured beyond it.
+
+Sometimes only one side of a large element is worth showing, such as a menu opened near the left edge of a wide table. `trim` cuts space off the target:
+
+```shotdoc
+- goto: /menu.html
+- screenshot:
+    name: left-of-grid
+    target: "#grid"
+    include: [".popup-menu"]
+    trim: {right: 60%}
+```
+
+`trim` takes any of `top`, `right`, `bottom` and `left`, and each says how much to remove from that side: CSS pixels (`400`), or a percentage of the target's width for `left` and `right` and of its height for `top` and `bottom` (`60%`). To work out an amount, your browser's developer tools show an element's size. A trim that leaves nothing of the target fails the build, and `trim` needs a `target`.
+
+Only the target is cut. Included elements and annotations are always wholly in the image, so including or highlighting something as wide as the target undoes a trim of its sides. `padding` is added after trimming, on trimmed sides too: with the default padding, 16 pixels of what you cut still show past the cut. Trim that much more, or lower `padding`, if that matters.
 
 A screenshot whose image is one colour throughout fails the build, with the screenshot's name and the colour in the message. That is almost always a page that has not rendered yet: add a `wait` for something that appears when the page is ready. A solid-colour element captured with `padding: 0` is also one colour; leave the default padding so the page around it is in the image.
 

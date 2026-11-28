@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { clamp, pad, region, scrollToFit, snap, union } from '../src/run/region.js';
+import { clamp, pad, region, scrollToFit, snap, trimRect, union } from '../src/run/region.js';
 
 test('padding extends every side', () => {
   expect(region([{ x: 100, y: 100, width: 50, height: 20 }], 16, 1000, 1000)).toEqual({
@@ -64,4 +64,24 @@ test('scrollToFit moves the minimum', () => {
   expect(scrollToFit({ x: 0, y: 700, width: 200, height: 150 }, { x: 0, y: 0 }, ...vp)).toEqual({ x: 0, y: 50 });
   expect(scrollToFit({ x: 0, y: 100, width: 200, height: 150 }, { x: 0, y: 0 }, ...vp)).toEqual({ x: 0, y: 0 });
   expect(scrollToFit({ x: 0, y: 100, width: 200, height: 150 }, { x: 0, y: 500 }, ...vp)).toEqual({ x: 0, y: 100 });
+});
+
+const box = { x: 40, y: 40, width: 600, height: 200 };
+
+test('trim in pixels moves only the named side', () => {
+  expect(trimRect(box, { right: { px: 400 } })).toEqual({ x: 40, y: 40, width: 200, height: 200 });
+});
+
+test('trim percentages are of the width for left and right and the height for top and bottom', () => {
+  expect(trimRect(box, { left: { px: 100 }, right: { percent: 50 }, top: { percent: 25 } })).toEqual({
+    x: 140,
+    y: 90,
+    width: 200,
+    height: 150,
+  });
+});
+
+test('a trim that leaves nothing gives no positive size', () => {
+  expect(trimRect(box, { right: { px: 700 } }).width).toBeLessThan(0);
+  expect(trimRect(box, { top: { percent: 60 }, bottom: { percent: 50 } }).height).toBeLessThan(0);
 });

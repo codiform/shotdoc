@@ -184,7 +184,7 @@ A step that refers to a page element SHALL accept a target written as either a s
 - **THEN** the step fails after the timeout and the message names the condition
 
 ### Requirement: Screenshot step syntax
-`screenshot` SHALL take a mapping with a required `name` and optional `target`, `include`, `padding`, `alt`, `hide`, `mask`, `maskColor`, `annotate`, and `defaults`. A `name` SHALL contain only letters, digits, hyphens, and underscores and SHALL be unique within the document. Without a `target` the viewport is captured. `hide` and `mask` SHALL each be a list of targets in any form a target accepts, `maskColor` SHALL be a non-empty string, `annotate` SHALL be a list of annotations, and `defaults` SHALL be a boolean.
+`screenshot` SHALL take a mapping with a required `name` and optional `target`, `include`, `trim`, `padding`, `alt`, `hide`, `mask`, `maskColor`, `annotate`, and `defaults`. A `name` SHALL contain only letters, digits, hyphens, and underscores and SHALL be unique within the document. Without a `target` the viewport is captured. `hide` and `mask` SHALL each be a list of targets in any form a target accepts, `maskColor` SHALL be a non-empty string, `annotate` SHALL be a list of annotations, and `defaults` SHALL be a boolean.
 
 #### Scenario: Name with invalid characters
 - **WHEN** a screenshot is named `my shot/1`
@@ -301,3 +301,22 @@ A source document MAY begin with a YAML front-matter block: a line of exactly `-
 #### Scenario: Not a boolean
 - **WHEN** a screenshot has `defaults: none`
 - **THEN** validation fails and names the step and the key
+
+### Requirement: Trim syntax
+`trim` SHALL be a mapping with at least one of `top`, `right`, `bottom`, and `left` and no other key. Each value SHALL be a non-negative number, or a percentage written as a number followed by `%` that is less than 100. `trim` SHALL require the screenshot to have a `target`.
+
+#### Scenario: Pixels and percentages accepted
+- **WHEN** a screenshot with a target has `trim: {right: 60%, top: 40}`
+- **THEN** validation succeeds
+
+#### Scenario: Not a mapping, empty, or unknown side
+- **WHEN** `trim` is `400`, `{}`, or `{width: 400}`
+- **THEN** validation fails before launching a browser and the message lists the sides allowed
+
+#### Scenario: Invalid amount
+- **WHEN** a side is `-5`, `"40px"`, `"100%"`, or `"-10%"`
+- **THEN** validation fails before launching a browser and the message names the side and the forms allowed
+
+#### Scenario: Trim without a target
+- **WHEN** a screenshot has `trim` and no `target`
+- **THEN** validation fails before launching a browser and says `trim` requires a `target`
