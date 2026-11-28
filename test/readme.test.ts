@@ -32,6 +32,15 @@ test('the README documents the screenshot options for hiding and masking', () =>
   expect(readme).toContain('### Hiding and masking');
 });
 
+test('the README documents trimming: the sides, both units and what is never cut', () => {
+  const section = readme.slice(readme.indexOf('### Screenshots'), readme.indexOf('### Hiding and masking'));
+  for (const word of ['`trim`', '`top`', '`right`', '`bottom`', '`left`', 'trim: {right: 60%}', 'percentage']) {
+    expect(section).toContain(word);
+  }
+  expect(section).toContain('Included elements and annotations are always wholly in the image');
+  expect(section).toContain('on trimmed sides too');
+});
+
 test('the README documents annotations: the option, each kind and the options', () => {
   expect(readme).toContain('### Annotating');
   for (const word of ['`annotate`', '`highlight`', '`arrow`', '`badge`', '`from`', '`color`']) {

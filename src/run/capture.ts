@@ -5,7 +5,7 @@ import { ShotdocError } from '../errors.js';
 import { describeTarget, type Step, type Target } from '../parse/types.js';
 import { drawAnnotations, planAnnotations } from './annotate.js';
 import { blankColour } from './blank.js';
-import { type Rect, region, scrollToFit } from './region.js';
+import { type Rect, region, scrollToFit, trimRect } from './region.js';
 import { type Session, TIMEOUT_MS } from './session.js';
 import { explain, locate } from './targets.js';
 
@@ -84,6 +84,23 @@ async function measure(page: Page, locators: Locator[], pageSize?: Effects['page
     y: window.scrollY,
   }));
   return { rects, page: pageSize ?? { width: env.width, height: env.height }, scroll: { x: env.x, y: env.y } };
+}
+
+/** The measured rects with the screenshot's `trim` applied to the target's, which is the first. */
+function trimmed(rects: Rect[], step: ScreenshotStep): Rect[] {
+  if (!step.trim) {
+    return rects;
+  }
+  const [target, ...included] = rects as [Rect, ...Rect[]];
+  const left = trimRect(target, step.trim);
+  // A hundredth of a pixel, so percentages that add to 100 are not saved by rounding error.
+  if (left.width < 0.01 || left.height < 0.01) {
+    const size = `${Math.round(target.width * 100) / 100}x${Math.round(target.height * 100) / 100}`;
+    throw new ShotdocError(
+      `screenshot "${step.name}": trim leaves nothing of the target ${describeTarget(step.target!)}, which is ${size} CSS pixels`,
+    );
+  }
+  return [left, ...included];
 }
 
 const contains = (clip: Rect, sx: number, sy: number, vw: number, vh: number) =>
@@ -314,7 +331,7 @@ async function capture(
   // re-measuring because scrolling can move things (sticky headers, lazy layout).
   for (let attempt = 0; attempt < 3; attempt++) {
     const g = await measure(page, locators, fx.pageSize);
-    const clip = region([...g.rects, ...fx.bounds], padding, g.page.width, g.page.height);
+    const clip = region([...trimmed(g.rects, step), ...fx.bounds], padding, g.page.width, g.page.height);
     if (clip.width > vp.width || clip.height > vp.height) {
       break;
     }
@@ -332,6 +349,6 @@ async function capture(
 
   // The region is larger than the viewport (or would not settle): capture beyond it.
   const g = await measure(page, locators, fx.pageSize);
-  const clip = region([...g.rects, ...fx.bounds], padding, g.page.width, g.page.height);
+  const clip = region([...trimmed(g.rects, step), ...fx.bounds], padding, g.page.width, g.page.height);
   save(path, await page.screenshot({ clip, fullPage: true, ...shotOpts }), step.name, fx.masked);
 }

@@ -1,0 +1,32 @@
+<!doctype html><meta charset=utf-8><title>Trim</title>
+<style>
+body{margin:0;background:rgb(245,245,245)}
+div{position:absolute}
+#panel{top:40px;left:40px;width:600px;height:200px}
+#popup{top:100px;left:200px;width:150px;height:50px;background:rgb(250,200,0)}
+#wide{top:400px;left:0;width:2000px;height:100px}
+</style>
+<div id=panel></div>
+<div id=popup></div>
+<div id=wide></div>
+<script>
+// Cells of 100x50, each its own colour: red counts columns, green counts rows.
+function fill(el, cols, rows, blue) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.id = `${el.id}-${c}-${r}`;
+      cell.style.cssText = `left:${c * 100}px;top:${r * 50}px;width:100px;height:50px;background:rgb(${c * 10},${r * 60},${blue})`;
+      el.appendChild(cell);
+    }
+  }
+}
+fill(document.getElementById('panel'), 6, 4, 100);
+fill(document.getElementById('wide'), 20, 2, 200);
+// A page that redraws when the viewport changes size, so a resize would show in the image.
+addEventListener('resize', () => {
+  for (const cell of document.querySelectorAll('#wide > div')) {
+    if (cell.id.split('-')[1] % 2) cell.style.background = 'rgb(255,0,0)';
+  }
+});
+</script>

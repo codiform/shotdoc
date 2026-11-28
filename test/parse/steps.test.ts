@@ -133,6 +133,33 @@ describe('screenshot', () => {
   });
 });
 
+describe('screenshot trim', () => {
+  test('pixels and percentages, with an unquoted % in a flow mapping', () => {
+    const { steps, errors } = run('- screenshot: {name: a, target: x, trim: {right: 60%, top: 40, left: "12.5%"}}\n');
+    expect(errors).toEqual([]);
+    expect(steps[0]).toHaveProperty('trim', { top: { px: 40 }, right: { percent: 60 }, left: { percent: 12.5 } });
+  });
+
+  test.each(['400', '{}', '{width: 400}', '[1]'])('%s is rejected and the sides are listed', (trim) => {
+    const m = msgs(`- screenshot: {name: a, target: x, trim: ${trim}}\n`);
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatch(/top, right, bottom, left/);
+  });
+
+  test.each(['-5', '"40px"', '"100%"', '"-10%"', '"40"', '.inf'])(
+    'amount %s is rejected, naming the side and the forms',
+    (amount) => {
+      const m = msgs(`- screenshot: {name: a, target: x, trim: {right: ${amount}}}\n`);
+      expect(m).toHaveLength(1);
+      expect(m[0]).toMatch(/`trim\.right` must be CSS pixels .* percentage below 100/);
+    },
+  );
+
+  test('requires a target', () => {
+    expect(msgs('- screenshot: {name: a, trim: {right: 1}}\n')[0]).toMatch(/`trim` requires a `target`/);
+  });
+});
+
 describe('screenshot hide, mask and maskColor', () => {
   test('a screenshot without them has empty lists and no colour', () => {
     const { steps, errors } = run('- screenshot: {name: a}\n');

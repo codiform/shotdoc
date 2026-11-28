@@ -1,3 +1,5 @@
+import type { Trim, TrimAmount } from '../parse/types.js';
+
 export interface Rect {
   x: number;
   y: number;
@@ -16,6 +18,23 @@ export function union(rects: Rect[]): Rect {
 
 export function pad(r: Rect, p: number): Rect {
   return { x: r.x - p, y: r.y - p, width: r.width + 2 * p, height: r.height + 2 * p };
+}
+
+/**
+ * Moves each named side of a rect inward. A percentage is of the rect's own width (left, right) or
+ * height (top, bottom). The result has zero or negative size when the trim leaves nothing.
+ */
+export function trimRect(r: Rect, trim: Trim): Rect {
+  const length = (a: TrimAmount | undefined, of: number) =>
+    a === undefined ? 0 : 'px' in a ? a.px : (of * a.percent) / 100;
+  const left = length(trim.left, r.width);
+  const top = length(trim.top, r.height);
+  return {
+    x: r.x + left,
+    y: r.y + top,
+    width: r.width - left - length(trim.right, r.width),
+    height: r.height - top - length(trim.bottom, r.height),
+  };
 }
 
 /** Limits a rect to the page, which starts at 0,0. */

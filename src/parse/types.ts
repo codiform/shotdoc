@@ -16,6 +16,12 @@ export type AnnotationKind = (typeof ANNOTATION_KINDS)[number];
 export const ARROW_SIDES = ['left', 'right', 'top', 'bottom'] as const;
 export type ArrowSide = (typeof ARROW_SIDES)[number];
 
+export const TRIM_SIDES = ['top', 'right', 'bottom', 'left'] as const;
+export type TrimSide = (typeof TRIM_SIDES)[number];
+/** How far one side moves inward: CSS pixels, or a percentage of the target's width or height. */
+export type TrimAmount = { px: number } | { percent: number };
+export type Trim = Partial<Record<TrimSide, TrimAmount>>;
+
 /** Something drawn over one element in one screenshot. `from` is only meaningful for an arrow. */
 export interface Annotation {
   kind: AnnotationKind;
@@ -52,6 +58,8 @@ export type Step =
       name: string;
       target?: Target;
       include: Target[];
+      /** Cut from the target's area only, before included elements and annotations are added. */
+      trim?: Trim;
       /** Elements made invisible, keeping their space, for this capture only. */
       hide: Target[];
       /** Elements covered by a solid block for this capture only. */
